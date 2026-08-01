@@ -1,0 +1,19 @@
+[package]
+name = "linkbot-bot"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+linkbot-core = { path = "../core" }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+async-trait = { workspace = true }
+reqwest = { workspace = true }
+url = { workspace = true }
+serenity = "0.12"
+regex = "1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
