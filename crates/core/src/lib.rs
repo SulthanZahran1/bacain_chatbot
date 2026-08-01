@@ -14,6 +14,7 @@ pub mod domain_speed;
 pub mod error;
 pub mod fetcher;
 pub mod mock_providers;
+pub mod optimizer;
 pub mod optimizer_policy;
 pub mod pipeline;
 pub mod reader;
