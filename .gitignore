@@ -5,13 +5,12 @@
 # Env / secrets
 .env
 .env.*
+*.env
 !.env.example
-
-# Local config
-*.local
 
 # Logs
 *.log
+*.log.*
 
 # Editors / OS
 .DS_Store
