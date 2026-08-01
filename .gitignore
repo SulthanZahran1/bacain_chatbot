@@ -1,18 +1,30 @@
 # Rust
-/target
+target/
 **/*.rs.bk
+Cargo.lock.bk
 
 # Env / secrets
 .env
 .env.*
 *.env
 !.env.example
+.env.local
+*.pem
 
 # Logs
 *.log
 *.log.*
 
 # Editors / OS
-.DS_Store
 .idea/
 .vscode/
+*.swp
+.DS_Store
+
+# Runtime artifacts
+optimized_policy.json.tmp
+*.db
+*.db-shm
+*.db-wal
+mutants.out/
+mutants.out.old/

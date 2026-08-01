@@ -1,0 +1,131 @@
+{
+  "id": "scn_042",
+  "source": {
+    "url": "https://reuters.com/story/scn_042",
+    "domain_bucket": "fast",
+    "is_ai_topic": true,
+    "ground_truth_angles": 4,
+    "title": "New LLM agent framework"
+  },
+  "corpus": [
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "history",
+      "relevance": 0.56,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 0 about history",
+      "snippet": "Snippet covering history."
+    },
+    {
+      "url": "https://news-1.example/article/1",
+      "angle": "industry-reaction",
+      "relevance": 0.71,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 1 about industry-reaction",
+      "snippet": "Snippet covering industry-reaction."
+    },
+    {
+      "url": "https://news-2.example/article/2",
+      "angle": "technical-details",
+      "relevance": 0.82,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 2 about technical-details",
+      "snippet": "Snippet covering technical-details."
+    },
+    {
+      "url": "https://news-3.example/article/3",
+      "angle": "market-impact",
+      "relevance": 0.75,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 3 about market-impact",
+      "snippet": "Snippet covering market-impact."
+    },
+    {
+      "url": "https://news-4.example/article/4",
+      "angle": "history",
+      "relevance": 0.65,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 4 about history",
+      "snippet": "Snippet covering history."
+    },
+    {
+      "url": "https://news-5.example/article/5",
+      "angle": "industry-reaction",
+      "relevance": 0.82,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 5 about industry-reaction",
+      "snippet": "Snippet covering industry-reaction."
+    },
+    {
+      "url": "https://news-6.example/article/6",
+      "angle": "technical-details",
+      "relevance": 0.8,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 6 about technical-details",
+      "snippet": "Snippet covering technical-details."
+    },
+    {
+      "url": "https://news-7.example/article/7",
+      "angle": "market-impact",
+      "relevance": 0.9,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 7 about market-impact",
+      "snippet": "Snippet covering market-impact."
+    },
+    {
+      "url": "https://news-8.example/article/8",
+      "angle": "history",
+      "relevance": 0.97,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 8 about history",
+      "snippet": "Snippet covering history."
+    },
+    {
+      "url": "https://news-9.example/article/9",
+      "angle": "industry-reaction",
+      "relevance": 0.63,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 9 about industry-reaction",
+      "snippet": "Snippet covering industry-reaction."
+    },
+    {
+      "url": "https://news-10.example/article/10",
+      "angle": "technical-details",
+      "relevance": 0.97,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 10 about technical-details",
+      "snippet": "Snippet covering technical-details."
+    },
+    {
+      "url": "https://news-11.example/article/11",
+      "angle": "market-impact",
+      "relevance": 0.65,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 11 about market-impact",
+      "snippet": "Snippet covering market-impact."
+    }
+  ],
+  "expected": {
+    "min_angles_covered": 2,
+    "max_wasted_fetches": 4
+  },
+  "overrides": {
+    "seed_queries": [
+      "history",
+      "industry-reaction"
+    ],
+    "rate_limit_after": 2
+  }
+}

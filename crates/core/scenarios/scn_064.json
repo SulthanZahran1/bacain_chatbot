@@ -1,0 +1,112 @@
+{
+  "id": "scn_064",
+  "source": {
+    "url": "https://statuspage.io/story/scn_064",
+    "domain_bucket": "breaking",
+    "is_ai_topic": true,
+    "ground_truth_angles": 3,
+    "title": "New LLM agent framework"
+  },
+  "corpus": [
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "security-implications",
+      "relevance": 0.84,
+      "fetchable": true,
+      "published_date": "2026-07-31",
+      "title": "Related article 0 about security-implications",
+      "snippet": "Snippet covering security-implications."
+    },
+    {
+      "url": "https://news-1.example/article/1",
+      "angle": "comparison",
+      "relevance": 0.6,
+      "fetchable": true,
+      "published_date": "2026-07-31",
+      "title": "Related article 1 about comparison",
+      "snippet": "Snippet covering comparison."
+    },
+    {
+      "url": "https://news-2.example/article/2",
+      "angle": "market-impact",
+      "relevance": 0.82,
+      "fetchable": true,
+      "published_date": "2026-07-31",
+      "title": "Related article 2 about market-impact",
+      "snippet": "Snippet covering market-impact."
+    },
+    {
+      "url": "https://news-3.example/article/3",
+      "angle": "security-implications",
+      "relevance": 0.84,
+      "fetchable": true,
+      "published_date": "2026-07-31",
+      "title": "Related article 3 about security-implications",
+      "snippet": "Snippet covering security-implications."
+    },
+    {
+      "url": "https://news-4.example/article/4",
+      "angle": "comparison",
+      "relevance": 0.8,
+      "fetchable": true,
+      "published_date": "2026-07-31",
+      "title": "Related article 4 about comparison",
+      "snippet": "Snippet covering comparison."
+    },
+    {
+      "url": "https://news-5.example/article/5",
+      "angle": "market-impact",
+      "relevance": 0.91,
+      "fetchable": true,
+      "published_date": "2026-07-31",
+      "title": "Related article 5 about market-impact",
+      "snippet": "Snippet covering market-impact."
+    },
+    {
+      "url": "https://news-6.example/article/6",
+      "angle": "security-implications",
+      "relevance": 0.92,
+      "fetchable": true,
+      "published_date": "2026-07-31",
+      "title": "Related article 6 about security-implications",
+      "snippet": "Snippet covering security-implications."
+    },
+    {
+      "url": "https://news-7.example/article/7",
+      "angle": "comparison",
+      "relevance": 0.67,
+      "fetchable": true,
+      "published_date": "2026-07-31",
+      "title": "Related article 7 about comparison",
+      "snippet": "Snippet covering comparison."
+    },
+    {
+      "url": "https://news-8.example/article/8",
+      "angle": "market-impact",
+      "relevance": 0.98,
+      "fetchable": true,
+      "published_date": "2026-07-31",
+      "title": "Related article 8 about market-impact",
+      "snippet": "Snippet covering market-impact."
+    },
+    {
+      "url": "https://news-9.example/article/9",
+      "angle": "security-implications",
+      "relevance": 0.65,
+      "fetchable": true,
+      "published_date": "2026-07-31",
+      "title": "Related article 9 about security-implications",
+      "snippet": "Snippet covering security-implications."
+    }
+  ],
+  "expected": {
+    "min_angles_covered": 2,
+    "max_wasted_fetches": 3
+  },
+  "overrides": {
+    "seed_queries": [
+      "security-implications",
+      "comparison"
+    ]
+  }
+}

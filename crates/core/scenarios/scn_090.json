@@ -1,0 +1,30 @@
+{
+  "id": "scn_090",
+  "source": {
+    "url": "https://unknown-blog.example/story/scn_090",
+    "domain_bucket": "default",
+    "is_ai_topic": true,
+    "ground_truth_angles": 1,
+    "title": "New LLM agent framework"
+  },
+  "corpus": [
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "history",
+      "relevance": 0.82,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 0 about history",
+      "snippet": "Snippet covering history."
+    }
+  ],
+  "expected": {
+    "min_angles_covered": 1,
+    "max_wasted_fetches": 0
+  },
+  "overrides": {
+    "seed_queries": [
+      "history"
+    ]
+  }
+}

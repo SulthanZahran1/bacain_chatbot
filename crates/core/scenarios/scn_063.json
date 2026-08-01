@@ -1,0 +1,112 @@
+{
+  "id": "scn_063",
+  "source": {
+    "url": "https://unknown-blog.example/story/scn_063",
+    "domain_bucket": "default",
+    "is_ai_topic": false,
+    "ground_truth_angles": 3,
+    "title": "Quarterly industry report"
+  },
+  "corpus": [
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "comparison",
+      "relevance": 0.95,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 0 about comparison",
+      "snippet": "Snippet covering comparison."
+    },
+    {
+      "url": "https://news-1.example/article/1",
+      "angle": "industry-reaction",
+      "relevance": 0.93,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 1 about industry-reaction",
+      "snippet": "Snippet covering industry-reaction."
+    },
+    {
+      "url": "https://news-2.example/article/2",
+      "angle": "market-impact",
+      "relevance": 0.81,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 2 about market-impact",
+      "snippet": "Snippet covering market-impact."
+    },
+    {
+      "url": "https://news-3.example/article/3",
+      "angle": "comparison",
+      "relevance": 0.96,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 3 about comparison",
+      "snippet": "Snippet covering comparison."
+    },
+    {
+      "url": "https://news-4.example/article/4",
+      "angle": "industry-reaction",
+      "relevance": 0.88,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 4 about industry-reaction",
+      "snippet": "Snippet covering industry-reaction."
+    },
+    {
+      "url": "https://news-5.example/article/5",
+      "angle": "market-impact",
+      "relevance": 0.67,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 5 about market-impact",
+      "snippet": "Snippet covering market-impact."
+    },
+    {
+      "url": "https://news-6.example/article/6",
+      "angle": "comparison",
+      "relevance": 0.68,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 6 about comparison",
+      "snippet": "Snippet covering comparison."
+    },
+    {
+      "url": "https://news-7.example/article/7",
+      "angle": "industry-reaction",
+      "relevance": 0.88,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 7 about industry-reaction",
+      "snippet": "Snippet covering industry-reaction."
+    },
+    {
+      "url": "https://news-8.example/article/8",
+      "angle": "market-impact",
+      "relevance": 0.94,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 8 about market-impact",
+      "snippet": "Snippet covering market-impact."
+    },
+    {
+      "url": "https://news-9.example/article/9",
+      "angle": "comparison",
+      "relevance": 0.95,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 9 about comparison",
+      "snippet": "Snippet covering comparison."
+    }
+  ],
+  "expected": {
+    "min_angles_covered": 0,
+    "max_wasted_fetches": 10
+  },
+  "overrides": {
+    "seed_queries": [
+      "comparison",
+      "industry-reaction"
+    ]
+  }
+}

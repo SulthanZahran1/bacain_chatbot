@@ -1,0 +1,130 @@
+{
+  "id": "scn_039",
+  "source": {
+    "url": "https://fcc.gov/story/scn_039",
+    "domain_bucket": "slow",
+    "is_ai_topic": true,
+    "ground_truth_angles": 2,
+    "title": "New LLM agent framework"
+  },
+  "corpus": [
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "comparison",
+      "relevance": 0.69,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 0 about comparison",
+      "snippet": "Snippet covering comparison."
+    },
+    {
+      "url": "https://news-1.example/article/1",
+      "angle": "funding",
+      "relevance": 0.55,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 1 about funding",
+      "snippet": "Snippet covering funding."
+    },
+    {
+      "url": "https://news-2.example/article/2",
+      "angle": "comparison",
+      "relevance": 0.88,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 2 about comparison",
+      "snippet": "Snippet covering comparison."
+    },
+    {
+      "url": "https://news-3.example/article/3",
+      "angle": "funding",
+      "relevance": 0.91,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 3 about funding",
+      "snippet": "Snippet covering funding."
+    },
+    {
+      "url": "https://news-4.example/article/4",
+      "angle": "comparison",
+      "relevance": 0.91,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 4 about comparison",
+      "snippet": "Snippet covering comparison."
+    },
+    {
+      "url": "https://news-5.example/article/5",
+      "angle": "funding",
+      "relevance": 0.58,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 5 about funding",
+      "snippet": "Snippet covering funding."
+    },
+    {
+      "url": "https://news-6.example/article/6",
+      "angle": "comparison",
+      "relevance": 0.79,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 6 about comparison",
+      "snippet": "Snippet covering comparison."
+    },
+    {
+      "url": "https://news-7.example/article/7",
+      "angle": "funding",
+      "relevance": 0.59,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 7 about funding",
+      "snippet": "Snippet covering funding."
+    },
+    {
+      "url": "https://news-8.example/article/8",
+      "angle": "comparison",
+      "relevance": 0.94,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 8 about comparison",
+      "snippet": "Snippet covering comparison."
+    },
+    {
+      "url": "https://news-9.example/article/9",
+      "angle": "funding",
+      "relevance": 0.85,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 9 about funding",
+      "snippet": "Snippet covering funding."
+    },
+    {
+      "url": "https://news-10.example/article/10",
+      "angle": "comparison",
+      "relevance": 0.6,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 10 about comparison",
+      "snippet": "Snippet covering comparison."
+    },
+    {
+      "url": "https://news-11.example/article/11",
+      "angle": "funding",
+      "relevance": 0.62,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 11 about funding",
+      "snippet": "Snippet covering funding."
+    }
+  ],
+  "expected": {
+    "min_angles_covered": 1,
+    "max_wasted_fetches": 4
+  },
+  "overrides": {
+    "seed_queries": [
+      "comparison",
+      "funding"
+    ]
+  }
+}

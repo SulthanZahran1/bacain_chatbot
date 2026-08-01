@@ -1,0 +1,30 @@
+{
+  "id": "scn_091",
+  "source": {
+    "url": "https://unknown-blog.example/story/scn_091",
+    "domain_bucket": "default",
+    "is_ai_topic": false,
+    "ground_truth_angles": 1,
+    "title": "Quarterly industry report"
+  },
+  "corpus": [
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "comparison",
+      "relevance": 0.94,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 0 about comparison",
+      "snippet": "Snippet covering comparison."
+    }
+  ],
+  "expected": {
+    "min_angles_covered": 1,
+    "max_wasted_fetches": 0
+  },
+  "overrides": {
+    "seed_queries": [
+      "comparison"
+    ]
+  }
+}

@@ -1,0 +1,238 @@
+{
+  "id": "scn_059",
+  "source": {
+    "url": "https://medium.com/story/scn_059",
+    "domain_bucket": "standard",
+    "is_ai_topic": false,
+    "ground_truth_angles": 7,
+    "title": "Quarterly industry report"
+  },
+  "corpus": [
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "history",
+      "relevance": 0.82,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 0 about history",
+      "snippet": "Snippet covering history."
+    },
+    {
+      "url": "https://news-1.example/article/1",
+      "angle": "mechanism",
+      "relevance": 0.66,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 1 about mechanism",
+      "snippet": "Snippet covering mechanism."
+    },
+    {
+      "url": "https://news-2.example/article/2",
+      "angle": "criticism",
+      "relevance": 0.88,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 2 about criticism",
+      "snippet": "Snippet covering criticism."
+    },
+    {
+      "url": "https://news-3.example/article/3",
+      "angle": "security-implications",
+      "relevance": 0.73,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 3 about security-implications",
+      "snippet": "Snippet covering security-implications."
+    },
+    {
+      "url": "https://news-4.example/article/4",
+      "angle": "comparison",
+      "relevance": 0.71,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 4 about comparison",
+      "snippet": "Snippet covering comparison."
+    },
+    {
+      "url": "https://news-5.example/article/5",
+      "angle": "future-outlook",
+      "relevance": 0.86,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 5 about future-outlook",
+      "snippet": "Snippet covering future-outlook."
+    },
+    {
+      "url": "https://news-6.example/article/6",
+      "angle": "adoption",
+      "relevance": 0.88,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 6 about adoption",
+      "snippet": "Snippet covering adoption."
+    },
+    {
+      "url": "https://news-7.example/article/7",
+      "angle": "history",
+      "relevance": 0.92,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 7 about history",
+      "snippet": "Snippet covering history."
+    },
+    {
+      "url": "https://news-8.example/article/8",
+      "angle": "mechanism",
+      "relevance": 0.7,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 8 about mechanism",
+      "snippet": "Snippet covering mechanism."
+    },
+    {
+      "url": "https://news-9.example/article/9",
+      "angle": "criticism",
+      "relevance": 0.79,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 9 about criticism",
+      "snippet": "Snippet covering criticism."
+    },
+    {
+      "url": "https://news-10.example/article/10",
+      "angle": "security-implications",
+      "relevance": 0.59,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 10 about security-implications",
+      "snippet": "Snippet covering security-implications."
+    },
+    {
+      "url": "https://news-11.example/article/11",
+      "angle": "comparison",
+      "relevance": 0.62,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 11 about comparison",
+      "snippet": "Snippet covering comparison."
+    },
+    {
+      "url": "https://news-12.example/article/12",
+      "angle": "future-outlook",
+      "relevance": 0.69,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 12 about future-outlook",
+      "snippet": "Snippet covering future-outlook."
+    },
+    {
+      "url": "https://news-13.example/article/13",
+      "angle": "adoption",
+      "relevance": 0.65,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 13 about adoption",
+      "snippet": "Snippet covering adoption."
+    },
+    {
+      "url": "https://news-14.example/article/14",
+      "angle": "history",
+      "relevance": 0.8,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 14 about history",
+      "snippet": "Snippet covering history."
+    },
+    {
+      "url": "https://news-15.example/article/15",
+      "angle": "mechanism",
+      "relevance": 0.62,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 15 about mechanism",
+      "snippet": "Snippet covering mechanism."
+    },
+    {
+      "url": "https://news-16.example/article/16",
+      "angle": "criticism",
+      "relevance": 0.94,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 16 about criticism",
+      "snippet": "Snippet covering criticism."
+    },
+    {
+      "url": "https://news-17.example/article/17",
+      "angle": "security-implications",
+      "relevance": 0.6,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 17 about security-implications",
+      "snippet": "Snippet covering security-implications."
+    },
+    {
+      "url": "https://news-18.example/article/18",
+      "angle": "comparison",
+      "relevance": 0.79,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 18 about comparison",
+      "snippet": "Snippet covering comparison."
+    },
+    {
+      "url": "https://news-19.example/article/19",
+      "angle": "future-outlook",
+      "relevance": 0.78,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 19 about future-outlook",
+      "snippet": "Snippet covering future-outlook."
+    },
+    {
+      "url": "https://news-20.example/article/20",
+      "angle": "adoption",
+      "relevance": 0.59,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 20 about adoption",
+      "snippet": "Snippet covering adoption."
+    },
+    {
+      "url": "https://news-21.example/article/21",
+      "angle": "history",
+      "relevance": 0.73,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 21 about history",
+      "snippet": "Snippet covering history."
+    },
+    {
+      "url": "https://news-22.example/article/22",
+      "angle": "mechanism",
+      "relevance": 0.8,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 22 about mechanism",
+      "snippet": "Snippet covering mechanism."
+    },
+    {
+      "url": "https://news-23.example/article/23",
+      "angle": "criticism",
+      "relevance": 0.65,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 23 about criticism",
+      "snippet": "Snippet covering criticism."
+    }
+  ],
+  "expected": {
+    "min_angles_covered": 3,
+    "max_wasted_fetches": 8
+  },
+  "overrides": {
+    "seed_queries": [
+      "history",
+      "mechanism"
+    ]
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "id": "scn_022",
+  "source": {
+    "url": "https://unknown-blog.example/story/scn_022",
+    "domain_bucket": "default",
+    "is_ai_topic": false,
+    "ground_truth_angles": 2,
+    "title": "Quarterly industry report"
+  },
+  "corpus": [
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "future-outlook",
+      "relevance": 0.78,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 0 about future-outlook",
+      "snippet": "Snippet covering future-outlook."
+    },
+    {
+      "url": "https://news-1.example/article/1",
+      "angle": "industry-reaction",
+      "relevance": 0.6,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 1 about industry-reaction",
+      "snippet": "Snippet covering industry-reaction."
+    },
+    {
+      "url": "https://news-2.example/article/2",
+      "angle": "future-outlook",
+      "relevance": 0.69,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 2 about future-outlook",
+      "snippet": "Snippet covering future-outlook."
+    }
+  ],
+  "expected": {
+    "min_angles_covered": 1,
+    "max_wasted_fetches": 1
+  },
+  "overrides": {
+    "seed_queries": [
+      "future-outlook",
+      "industry-reaction"
+    ]
+  }
+}

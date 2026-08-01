@@ -1,0 +1,49 @@
+{
+  "id": "scn_023",
+  "source": {
+    "url": "https://unknown-blog.example/story/scn_023",
+    "domain_bucket": "default",
+    "is_ai_topic": true,
+    "ground_truth_angles": 2,
+    "title": "New LLM agent framework"
+  },
+  "corpus": [
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "security-implications",
+      "relevance": 0.95,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 0 about security-implications",
+      "snippet": "Snippet covering security-implications."
+    },
+    {
+      "url": "https://news-1.example/article/1",
+      "angle": "adoption",
+      "relevance": 0.69,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 1 about adoption",
+      "snippet": "Snippet covering adoption."
+    },
+    {
+      "url": "https://news-2.example/article/2",
+      "angle": "security-implications",
+      "relevance": 0.75,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 2 about security-implications",
+      "snippet": "Snippet covering security-implications."
+    }
+  ],
+  "expected": {
+    "min_angles_covered": 1,
+    "max_wasted_fetches": 1
+  },
+  "overrides": {
+    "seed_queries": [
+      "security-implications",
+      "adoption"
+    ]
+  }
+}

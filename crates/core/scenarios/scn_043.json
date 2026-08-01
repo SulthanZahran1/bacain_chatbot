@@ -1,0 +1,131 @@
+{
+  "id": "scn_043",
+  "source": {
+    "url": "https://reuters.com/story/scn_043",
+    "domain_bucket": "fast",
+    "is_ai_topic": false,
+    "ground_truth_angles": 4,
+    "title": "Quarterly industry report"
+  },
+  "corpus": [
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "regulation",
+      "relevance": 0.67,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 0 about regulation",
+      "snippet": "Snippet covering regulation."
+    },
+    {
+      "url": "https://news-1.example/article/1",
+      "angle": "mechanism",
+      "relevance": 0.63,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 1 about mechanism",
+      "snippet": "Snippet covering mechanism."
+    },
+    {
+      "url": "https://news-2.example/article/2",
+      "angle": "adoption",
+      "relevance": 0.57,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 2 about adoption",
+      "snippet": "Snippet covering adoption."
+    },
+    {
+      "url": "https://news-3.example/article/3",
+      "angle": "criticism",
+      "relevance": 0.89,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 3 about criticism",
+      "snippet": "Snippet covering criticism."
+    },
+    {
+      "url": "https://news-4.example/article/4",
+      "angle": "regulation",
+      "relevance": 0.57,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 4 about regulation",
+      "snippet": "Snippet covering regulation."
+    },
+    {
+      "url": "https://news-5.example/article/5",
+      "angle": "mechanism",
+      "relevance": 0.73,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 5 about mechanism",
+      "snippet": "Snippet covering mechanism."
+    },
+    {
+      "url": "https://news-6.example/article/6",
+      "angle": "adoption",
+      "relevance": 0.76,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 6 about adoption",
+      "snippet": "Snippet covering adoption."
+    },
+    {
+      "url": "https://news-7.example/article/7",
+      "angle": "criticism",
+      "relevance": 0.9,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 7 about criticism",
+      "snippet": "Snippet covering criticism."
+    },
+    {
+      "url": "https://news-8.example/article/8",
+      "angle": "regulation",
+      "relevance": 0.86,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 8 about regulation",
+      "snippet": "Snippet covering regulation."
+    },
+    {
+      "url": "https://news-9.example/article/9",
+      "angle": "mechanism",
+      "relevance": 0.93,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 9 about mechanism",
+      "snippet": "Snippet covering mechanism."
+    },
+    {
+      "url": "https://news-10.example/article/10",
+      "angle": "adoption",
+      "relevance": 0.92,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 10 about adoption",
+      "snippet": "Snippet covering adoption."
+    },
+    {
+      "url": "https://news-11.example/article/11",
+      "angle": "criticism",
+      "relevance": 0.98,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 11 about criticism",
+      "snippet": "Snippet covering criticism."
+    }
+  ],
+  "expected": {
+    "min_angles_covered": 2,
+    "max_wasted_fetches": 4
+  },
+  "overrides": {
+    "seed_queries": [
+      "regulation",
+      "mechanism"
+    ],
+    "rate_limit_after": 2
+  }
+}

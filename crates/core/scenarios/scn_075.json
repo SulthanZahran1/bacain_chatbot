@@ -1,0 +1,94 @@
+{
+  "id": "scn_075",
+  "source": {
+    "url": "https://unknown-blog.example/story/scn_075",
+    "domain_bucket": "default",
+    "is_ai_topic": false,
+    "ground_truth_angles": 3,
+    "title": "Quarterly industry report"
+  },
+  "corpus": [
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "history",
+      "relevance": 0.95,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 0 about history",
+      "snippet": "Snippet covering history."
+    },
+    {
+      "url": "https://news-1.example/article/1",
+      "angle": "security-implications",
+      "relevance": 0.62,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 1 about security-implications",
+      "snippet": "Snippet covering security-implications."
+    },
+    {
+      "url": "https://news-2.example/article/2",
+      "angle": "funding",
+      "relevance": 0.94,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 2 about funding",
+      "snippet": "Snippet covering funding."
+    },
+    {
+      "url": "https://news-3.example/article/3",
+      "angle": "history",
+      "relevance": 0.55,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 3 about history",
+      "snippet": "Snippet covering history."
+    },
+    {
+      "url": "https://news-4.example/article/4",
+      "angle": "security-implications",
+      "relevance": 0.82,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 4 about security-implications",
+      "snippet": "Snippet covering security-implications."
+    },
+    {
+      "url": "https://news-5.example/article/5",
+      "angle": "funding",
+      "relevance": 0.7,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 5 about funding",
+      "snippet": "Snippet covering funding."
+    },
+    {
+      "url": "https://news-6.example/article/6",
+      "angle": "history",
+      "relevance": 0.63,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 6 about history",
+      "snippet": "Snippet covering history."
+    },
+    {
+      "url": "https://news-7.example/article/7",
+      "angle": "security-implications",
+      "relevance": 0.96,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 7 about security-implications",
+      "snippet": "Snippet covering security-implications."
+    }
+  ],
+  "expected": {
+    "min_angles_covered": 1,
+    "max_wasted_fetches": 7
+  },
+  "overrides": {
+    "seed_queries": [
+      "history",
+      "security-implications"
+    ]
+  }
+}

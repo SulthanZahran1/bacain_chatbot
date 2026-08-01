@@ -1,0 +1,139 @@
+{
+  "id": "scn_046",
+  "source": {
+    "url": "https://medium.com/story/scn_046",
+    "domain_bucket": "standard",
+    "is_ai_topic": true,
+    "ground_truth_angles": 4,
+    "title": "New LLM agent framework"
+  },
+  "corpus": [
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "history",
+      "relevance": 0.84,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 0 about history",
+      "snippet": "Snippet covering history."
+    },
+    {
+      "url": "https://news-1.example/article/1",
+      "angle": "industry-reaction",
+      "relevance": 0.92,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 1 about industry-reaction",
+      "snippet": "Snippet covering industry-reaction."
+    },
+    {
+      "url": "https://news-2.example/article/2",
+      "angle": "regulation",
+      "relevance": 0.97,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 2 about regulation",
+      "snippet": "Snippet covering regulation."
+    },
+    {
+      "url": "https://news-3.example/article/3",
+      "angle": "criticism",
+      "relevance": 0.75,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 3 about criticism",
+      "snippet": "Snippet covering criticism."
+    },
+    {
+      "url": "https://news-4.example/article/4",
+      "angle": "history",
+      "relevance": 0.92,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 4 about history",
+      "snippet": "Snippet covering history."
+    },
+    {
+      "url": "https://news-5.example/article/5",
+      "angle": "industry-reaction",
+      "relevance": 0.79,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 5 about industry-reaction",
+      "snippet": "Snippet covering industry-reaction."
+    },
+    {
+      "url": "https://news-6.example/article/6",
+      "angle": "regulation",
+      "relevance": 0.71,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 6 about regulation",
+      "snippet": "Snippet covering regulation."
+    },
+    {
+      "url": "https://news-7.example/article/7",
+      "angle": "criticism",
+      "relevance": 0.59,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 7 about criticism",
+      "snippet": "Snippet covering criticism."
+    },
+    {
+      "url": "https://news-8.example/article/8",
+      "angle": "history",
+      "relevance": 0.88,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 8 about history",
+      "snippet": "Snippet covering history."
+    },
+    {
+      "url": "https://news-9.example/article/9",
+      "angle": "industry-reaction",
+      "relevance": 0.96,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 9 about industry-reaction",
+      "snippet": "Snippet covering industry-reaction."
+    },
+    {
+      "url": "https://news-10.example/article/10",
+      "angle": "regulation",
+      "relevance": 0.57,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 10 about regulation",
+      "snippet": "Snippet covering regulation."
+    },
+    {
+      "url": "https://news-11.example/article/11",
+      "angle": "criticism",
+      "relevance": 0.73,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 11 about criticism",
+      "snippet": "Snippet covering criticism."
+    }
+  ],
+  "expected": {
+    "min_angles_covered": 2,
+    "max_wasted_fetches": 4
+  },
+  "overrides": {
+    "seed_queries": [
+      "history",
+      "industry-reaction"
+    ],
+    "coverage_per_round": [
+      0.3,
+      0.4,
+      0.5
+    ],
+    "angles": [
+      "mechanism",
+      "market-impact"
+    ]
+  }
+}

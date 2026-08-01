@@ -1,0 +1,112 @@
+{
+  "id": "scn_088",
+  "source": {
+    "url": "https://reuters.com/story/scn_088",
+    "domain_bucket": "fast",
+    "is_ai_topic": true,
+    "ground_truth_angles": 3,
+    "title": "New LLM agent framework"
+  },
+  "corpus": [
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "mechanism",
+      "relevance": 0.77,
+      "fetchable": true,
+      "published_date": "2026-01-10",
+      "title": "Related article 0 about mechanism",
+      "snippet": "Snippet covering mechanism."
+    },
+    {
+      "url": "https://news-1.example/article/1",
+      "angle": "funding",
+      "relevance": 0.95,
+      "fetchable": true,
+      "published_date": "2026-01-10",
+      "title": "Related article 1 about funding",
+      "snippet": "Snippet covering funding."
+    },
+    {
+      "url": "https://news-2.example/article/2",
+      "angle": "history",
+      "relevance": 0.84,
+      "fetchable": true,
+      "published_date": "2026-01-10",
+      "title": "Related article 2 about history",
+      "snippet": "Snippet covering history."
+    },
+    {
+      "url": "https://news-3.example/article/3",
+      "angle": "mechanism",
+      "relevance": 0.77,
+      "fetchable": true,
+      "published_date": "2026-01-10",
+      "title": "Related article 3 about mechanism",
+      "snippet": "Snippet covering mechanism."
+    },
+    {
+      "url": "https://news-4.example/article/4",
+      "angle": "funding",
+      "relevance": 0.9,
+      "fetchable": true,
+      "published_date": "2026-01-10",
+      "title": "Related article 4 about funding",
+      "snippet": "Snippet covering funding."
+    },
+    {
+      "url": "https://news-5.example/article/5",
+      "angle": "history",
+      "relevance": 0.73,
+      "fetchable": true,
+      "published_date": "2026-01-10",
+      "title": "Related article 5 about history",
+      "snippet": "Snippet covering history."
+    },
+    {
+      "url": "https://news-6.example/article/6",
+      "angle": "mechanism",
+      "relevance": 0.76,
+      "fetchable": true,
+      "published_date": "2026-01-10",
+      "title": "Related article 6 about mechanism",
+      "snippet": "Snippet covering mechanism."
+    },
+    {
+      "url": "https://news-7.example/article/7",
+      "angle": "funding",
+      "relevance": 0.76,
+      "fetchable": true,
+      "published_date": "2026-01-10",
+      "title": "Related article 7 about funding",
+      "snippet": "Snippet covering funding."
+    },
+    {
+      "url": "https://news-8.example/article/8",
+      "angle": "history",
+      "relevance": 0.96,
+      "fetchable": true,
+      "published_date": "2026-01-10",
+      "title": "Related article 8 about history",
+      "snippet": "Snippet covering history."
+    },
+    {
+      "url": "https://news-9.example/article/9",
+      "angle": "mechanism",
+      "relevance": 0.76,
+      "fetchable": true,
+      "published_date": "2026-01-10",
+      "title": "Related article 9 about mechanism",
+      "snippet": "Snippet covering mechanism."
+    }
+  ],
+  "expected": {
+    "min_angles_covered": 0,
+    "max_wasted_fetches": 0
+  },
+  "overrides": {
+    "seed_queries": [
+      "mechanism",
+      "funding"
+    ]
+  }
+}

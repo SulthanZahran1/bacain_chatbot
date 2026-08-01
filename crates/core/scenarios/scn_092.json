@@ -1,0 +1,94 @@
+{
+  "id": "scn_092",
+  "source": {
+    "url": "https://medium.com/story/scn_092",
+    "domain_bucket": "standard",
+    "is_ai_topic": false,
+    "ground_truth_angles": 2,
+    "title": "Quarterly industry report"
+  },
+  "corpus": [
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "regulation",
+      "relevance": 0.82,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 0 about regulation",
+      "snippet": "Snippet covering regulation."
+    },
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "technical-details",
+      "relevance": 0.64,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 1 about technical-details",
+      "snippet": "Snippet covering technical-details."
+    },
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "regulation",
+      "relevance": 0.73,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 2 about regulation",
+      "snippet": "Snippet covering regulation."
+    },
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "technical-details",
+      "relevance": 0.6,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 3 about technical-details",
+      "snippet": "Snippet covering technical-details."
+    },
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "regulation",
+      "relevance": 0.88,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 4 about regulation",
+      "snippet": "Snippet covering regulation."
+    },
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "technical-details",
+      "relevance": 0.76,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 5 about technical-details",
+      "snippet": "Snippet covering technical-details."
+    },
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "regulation",
+      "relevance": 0.59,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 6 about regulation",
+      "snippet": "Snippet covering regulation."
+    },
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "technical-details",
+      "relevance": 0.97,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 7 about technical-details",
+      "snippet": "Snippet covering technical-details."
+    }
+  ],
+  "expected": {
+    "min_angles_covered": 1,
+    "max_wasted_fetches": 2
+  },
+  "overrides": {
+    "seed_queries": [
+      "regulation",
+      "technical-details"
+    ]
+  }
+}

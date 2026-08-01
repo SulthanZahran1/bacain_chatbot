@@ -1,0 +1,202 @@
+{
+  "id": "scn_031",
+  "source": {
+    "url": "https://reuters.com/story/scn_031",
+    "domain_bucket": "fast",
+    "is_ai_topic": true,
+    "ground_truth_angles": 4,
+    "title": "New LLM agent framework"
+  },
+  "corpus": [
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "criticism",
+      "relevance": 0.77,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 0 about criticism",
+      "snippet": "Snippet covering criticism."
+    },
+    {
+      "url": "https://news-1.example/article/1",
+      "angle": "regulation",
+      "relevance": 0.64,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 1 about regulation",
+      "snippet": "Snippet covering regulation."
+    },
+    {
+      "url": "https://news-2.example/article/2",
+      "angle": "history",
+      "relevance": 0.59,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 2 about history",
+      "snippet": "Snippet covering history."
+    },
+    {
+      "url": "https://news-3.example/article/3",
+      "angle": "industry-reaction",
+      "relevance": 0.68,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 3 about industry-reaction",
+      "snippet": "Snippet covering industry-reaction."
+    },
+    {
+      "url": "https://news-4.example/article/4",
+      "angle": "criticism",
+      "relevance": 0.6,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 4 about criticism",
+      "snippet": "Snippet covering criticism."
+    },
+    {
+      "url": "https://news-5.example/article/5",
+      "angle": "regulation",
+      "relevance": 0.64,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 5 about regulation",
+      "snippet": "Snippet covering regulation."
+    },
+    {
+      "url": "https://news-6.example/article/6",
+      "angle": "history",
+      "relevance": 0.64,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 6 about history",
+      "snippet": "Snippet covering history."
+    },
+    {
+      "url": "https://news-7.example/article/7",
+      "angle": "industry-reaction",
+      "relevance": 0.55,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 7 about industry-reaction",
+      "snippet": "Snippet covering industry-reaction."
+    },
+    {
+      "url": "https://news-8.example/article/8",
+      "angle": "criticism",
+      "relevance": 0.83,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 8 about criticism",
+      "snippet": "Snippet covering criticism."
+    },
+    {
+      "url": "https://news-9.example/article/9",
+      "angle": "regulation",
+      "relevance": 0.61,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 9 about regulation",
+      "snippet": "Snippet covering regulation."
+    },
+    {
+      "url": "https://news-10.example/article/10",
+      "angle": "history",
+      "relevance": 0.7,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 10 about history",
+      "snippet": "Snippet covering history."
+    },
+    {
+      "url": "https://news-11.example/article/11",
+      "angle": "industry-reaction",
+      "relevance": 0.77,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 11 about industry-reaction",
+      "snippet": "Snippet covering industry-reaction."
+    },
+    {
+      "url": "https://news-12.example/article/12",
+      "angle": "criticism",
+      "relevance": 0.95,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 12 about criticism",
+      "snippet": "Snippet covering criticism."
+    },
+    {
+      "url": "https://news-13.example/article/13",
+      "angle": "regulation",
+      "relevance": 0.7,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 13 about regulation",
+      "snippet": "Snippet covering regulation."
+    },
+    {
+      "url": "https://news-14.example/article/14",
+      "angle": "history",
+      "relevance": 0.81,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 14 about history",
+      "snippet": "Snippet covering history."
+    },
+    {
+      "url": "https://news-15.example/article/15",
+      "angle": "industry-reaction",
+      "relevance": 0.9,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 15 about industry-reaction",
+      "snippet": "Snippet covering industry-reaction."
+    },
+    {
+      "url": "https://news-16.example/article/16",
+      "angle": "criticism",
+      "relevance": 0.84,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 16 about criticism",
+      "snippet": "Snippet covering criticism."
+    },
+    {
+      "url": "https://news-17.example/article/17",
+      "angle": "regulation",
+      "relevance": 0.85,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 17 about regulation",
+      "snippet": "Snippet covering regulation."
+    },
+    {
+      "url": "https://news-18.example/article/18",
+      "angle": "history",
+      "relevance": 0.87,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 18 about history",
+      "snippet": "Snippet covering history."
+    },
+    {
+      "url": "https://news-19.example/article/19",
+      "angle": "industry-reaction",
+      "relevance": 0.87,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 19 about industry-reaction",
+      "snippet": "Snippet covering industry-reaction."
+    }
+  ],
+  "expected": {
+    "min_angles_covered": 2,
+    "max_wasted_fetches": 18
+  },
+  "overrides": {
+    "seed_queries": [
+      "criticism",
+      "regulation"
+    ]
+  }
+}

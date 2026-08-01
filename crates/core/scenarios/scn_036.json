@@ -1,0 +1,129 @@
+{
+  "id": "scn_036",
+  "source": {
+    "url": "https://fcc.gov/story/scn_036",
+    "domain_bucket": "slow",
+    "is_ai_topic": false,
+    "ground_truth_angles": 1,
+    "title": "Quarterly industry report"
+  },
+  "corpus": [
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "technical-details",
+      "relevance": 0.84,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 0 about technical-details",
+      "snippet": "Snippet covering technical-details."
+    },
+    {
+      "url": "https://news-1.example/article/1",
+      "angle": "technical-details",
+      "relevance": 0.66,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 1 about technical-details",
+      "snippet": "Snippet covering technical-details."
+    },
+    {
+      "url": "https://news-2.example/article/2",
+      "angle": "technical-details",
+      "relevance": 0.67,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 2 about technical-details",
+      "snippet": "Snippet covering technical-details."
+    },
+    {
+      "url": "https://news-3.example/article/3",
+      "angle": "technical-details",
+      "relevance": 0.61,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 3 about technical-details",
+      "snippet": "Snippet covering technical-details."
+    },
+    {
+      "url": "https://news-4.example/article/4",
+      "angle": "technical-details",
+      "relevance": 0.78,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 4 about technical-details",
+      "snippet": "Snippet covering technical-details."
+    },
+    {
+      "url": "https://news-5.example/article/5",
+      "angle": "technical-details",
+      "relevance": 0.57,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 5 about technical-details",
+      "snippet": "Snippet covering technical-details."
+    },
+    {
+      "url": "https://news-6.example/article/6",
+      "angle": "technical-details",
+      "relevance": 0.94,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 6 about technical-details",
+      "snippet": "Snippet covering technical-details."
+    },
+    {
+      "url": "https://news-7.example/article/7",
+      "angle": "technical-details",
+      "relevance": 0.72,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 7 about technical-details",
+      "snippet": "Snippet covering technical-details."
+    },
+    {
+      "url": "https://news-8.example/article/8",
+      "angle": "technical-details",
+      "relevance": 0.63,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 8 about technical-details",
+      "snippet": "Snippet covering technical-details."
+    },
+    {
+      "url": "https://news-9.example/article/9",
+      "angle": "technical-details",
+      "relevance": 0.97,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 9 about technical-details",
+      "snippet": "Snippet covering technical-details."
+    },
+    {
+      "url": "https://news-10.example/article/10",
+      "angle": "technical-details",
+      "relevance": 0.93,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 10 about technical-details",
+      "snippet": "Snippet covering technical-details."
+    },
+    {
+      "url": "https://news-11.example/article/11",
+      "angle": "technical-details",
+      "relevance": 0.94,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 11 about technical-details",
+      "snippet": "Snippet covering technical-details."
+    }
+  ],
+  "expected": {
+    "min_angles_covered": 1,
+    "max_wasted_fetches": 4
+  },
+  "overrides": {
+    "seed_queries": [
+      "technical-details"
+    ]
+  }
+}

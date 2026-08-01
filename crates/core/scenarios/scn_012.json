@@ -1,0 +1,292 @@
+{
+  "id": "scn_012",
+  "source": {
+    "url": "https://medium.com/story/scn_012",
+    "domain_bucket": "standard",
+    "is_ai_topic": false,
+    "ground_truth_angles": 6,
+    "title": "Quarterly industry report"
+  },
+  "corpus": [
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "comparison",
+      "relevance": 0.65,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 0 about comparison",
+      "snippet": "Snippet covering comparison."
+    },
+    {
+      "url": "https://news-1.example/article/1",
+      "angle": "funding",
+      "relevance": 0.76,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 1 about funding",
+      "snippet": "Snippet covering funding."
+    },
+    {
+      "url": "https://news-2.example/article/2",
+      "angle": "future-outlook",
+      "relevance": 0.91,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 2 about future-outlook",
+      "snippet": "Snippet covering future-outlook."
+    },
+    {
+      "url": "https://news-3.example/article/3",
+      "angle": "criticism",
+      "relevance": 0.85,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 3 about criticism",
+      "snippet": "Snippet covering criticism."
+    },
+    {
+      "url": "https://news-4.example/article/4",
+      "angle": "security-implications",
+      "relevance": 0.63,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 4 about security-implications",
+      "snippet": "Snippet covering security-implications."
+    },
+    {
+      "url": "https://news-5.example/article/5",
+      "angle": "regulation",
+      "relevance": 0.88,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 5 about regulation",
+      "snippet": "Snippet covering regulation."
+    },
+    {
+      "url": "https://news-6.example/article/6",
+      "angle": "comparison",
+      "relevance": 0.69,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 6 about comparison",
+      "snippet": "Snippet covering comparison."
+    },
+    {
+      "url": "https://news-7.example/article/7",
+      "angle": "funding",
+      "relevance": 0.84,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 7 about funding",
+      "snippet": "Snippet covering funding."
+    },
+    {
+      "url": "https://news-8.example/article/8",
+      "angle": "future-outlook",
+      "relevance": 0.71,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 8 about future-outlook",
+      "snippet": "Snippet covering future-outlook."
+    },
+    {
+      "url": "https://news-9.example/article/9",
+      "angle": "criticism",
+      "relevance": 0.67,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 9 about criticism",
+      "snippet": "Snippet covering criticism."
+    },
+    {
+      "url": "https://news-10.example/article/10",
+      "angle": "security-implications",
+      "relevance": 0.85,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 10 about security-implications",
+      "snippet": "Snippet covering security-implications."
+    },
+    {
+      "url": "https://news-11.example/article/11",
+      "angle": "regulation",
+      "relevance": 0.97,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 11 about regulation",
+      "snippet": "Snippet covering regulation."
+    },
+    {
+      "url": "https://news-12.example/article/12",
+      "angle": "comparison",
+      "relevance": 0.66,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 12 about comparison",
+      "snippet": "Snippet covering comparison."
+    },
+    {
+      "url": "https://news-13.example/article/13",
+      "angle": "funding",
+      "relevance": 0.78,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 13 about funding",
+      "snippet": "Snippet covering funding."
+    },
+    {
+      "url": "https://news-14.example/article/14",
+      "angle": "future-outlook",
+      "relevance": 0.94,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 14 about future-outlook",
+      "snippet": "Snippet covering future-outlook."
+    },
+    {
+      "url": "https://news-15.example/article/15",
+      "angle": "criticism",
+      "relevance": 0.81,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 15 about criticism",
+      "snippet": "Snippet covering criticism."
+    },
+    {
+      "url": "https://news-16.example/article/16",
+      "angle": "security-implications",
+      "relevance": 0.64,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 16 about security-implications",
+      "snippet": "Snippet covering security-implications."
+    },
+    {
+      "url": "https://news-17.example/article/17",
+      "angle": "regulation",
+      "relevance": 0.94,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 17 about regulation",
+      "snippet": "Snippet covering regulation."
+    },
+    {
+      "url": "https://news-18.example/article/18",
+      "angle": "comparison",
+      "relevance": 0.77,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 18 about comparison",
+      "snippet": "Snippet covering comparison."
+    },
+    {
+      "url": "https://news-19.example/article/19",
+      "angle": "funding",
+      "relevance": 0.63,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 19 about funding",
+      "snippet": "Snippet covering funding."
+    },
+    {
+      "url": "https://news-20.example/article/20",
+      "angle": "future-outlook",
+      "relevance": 0.89,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 20 about future-outlook",
+      "snippet": "Snippet covering future-outlook."
+    },
+    {
+      "url": "https://news-21.example/article/21",
+      "angle": "criticism",
+      "relevance": 0.95,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 21 about criticism",
+      "snippet": "Snippet covering criticism."
+    },
+    {
+      "url": "https://news-22.example/article/22",
+      "angle": "security-implications",
+      "relevance": 0.71,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 22 about security-implications",
+      "snippet": "Snippet covering security-implications."
+    },
+    {
+      "url": "https://news-23.example/article/23",
+      "angle": "regulation",
+      "relevance": 0.55,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 23 about regulation",
+      "snippet": "Snippet covering regulation."
+    },
+    {
+      "url": "https://news-24.example/article/24",
+      "angle": "comparison",
+      "relevance": 0.57,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 24 about comparison",
+      "snippet": "Snippet covering comparison."
+    },
+    {
+      "url": "https://news-25.example/article/25",
+      "angle": "funding",
+      "relevance": 0.96,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 25 about funding",
+      "snippet": "Snippet covering funding."
+    },
+    {
+      "url": "https://news-26.example/article/26",
+      "angle": "future-outlook",
+      "relevance": 0.69,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 26 about future-outlook",
+      "snippet": "Snippet covering future-outlook."
+    },
+    {
+      "url": "https://news-27.example/article/27",
+      "angle": "criticism",
+      "relevance": 0.56,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 27 about criticism",
+      "snippet": "Snippet covering criticism."
+    },
+    {
+      "url": "https://news-28.example/article/28",
+      "angle": "security-implications",
+      "relevance": 0.89,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 28 about security-implications",
+      "snippet": "Snippet covering security-implications."
+    },
+    {
+      "url": "https://news-29.example/article/29",
+      "angle": "regulation",
+      "relevance": 0.62,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 29 about regulation",
+      "snippet": "Snippet covering regulation."
+    }
+  ],
+  "expected": {
+    "min_angles_covered": 4,
+    "max_wasted_fetches": 10
+  },
+  "overrides": {
+    "seed_queries": [
+      "comparison",
+      "funding"
+    ]
+  }
+}

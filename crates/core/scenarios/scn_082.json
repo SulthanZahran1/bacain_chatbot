@@ -1,0 +1,75 @@
+{
+  "id": "scn_082",
+  "source": {
+    "url": "https://medium.com/story/scn_082",
+    "domain_bucket": "standard",
+    "is_ai_topic": true,
+    "ground_truth_angles": 1,
+    "title": "New LLM agent framework"
+  },
+  "corpus": [
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "mechanism",
+      "relevance": 0.59,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 0 about mechanism",
+      "snippet": "Snippet covering mechanism."
+    },
+    {
+      "url": "https://news-1.example/article/1",
+      "angle": "mechanism",
+      "relevance": 0.91,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 1 about mechanism",
+      "snippet": "Snippet covering mechanism."
+    },
+    {
+      "url": "https://news-2.example/article/2",
+      "angle": "mechanism",
+      "relevance": 0.71,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 2 about mechanism",
+      "snippet": "Snippet covering mechanism."
+    },
+    {
+      "url": "https://news-3.example/article/3",
+      "angle": "mechanism",
+      "relevance": 0.82,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 3 about mechanism",
+      "snippet": "Snippet covering mechanism."
+    },
+    {
+      "url": "https://news-4.example/article/4",
+      "angle": "mechanism",
+      "relevance": 0.71,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 4 about mechanism",
+      "snippet": "Snippet covering mechanism."
+    },
+    {
+      "url": "https://news-5.example/article/5",
+      "angle": "mechanism",
+      "relevance": 0.93,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 5 about mechanism",
+      "snippet": "Snippet covering mechanism."
+    }
+  ],
+  "expected": {
+    "min_angles_covered": 1,
+    "max_wasted_fetches": 2
+  },
+  "overrides": {
+    "seed_queries": [
+      "mechanism"
+    ]
+  }
+}

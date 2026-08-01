@@ -1,0 +1,148 @@
+{
+  "id": "scn_069",
+  "source": {
+    "url": "https://medium.com/story/scn_069",
+    "domain_bucket": "standard",
+    "is_ai_topic": false,
+    "ground_truth_angles": 4,
+    "title": "Quarterly industry report"
+  },
+  "corpus": [
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "industry-reaction",
+      "relevance": 0.91,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 0 about industry-reaction",
+      "snippet": "Snippet covering industry-reaction."
+    },
+    {
+      "url": "https://news-1.example/article/1",
+      "angle": "market-impact",
+      "relevance": 0.76,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 1 about market-impact",
+      "snippet": "Snippet covering market-impact."
+    },
+    {
+      "url": "https://news-2.example/article/2",
+      "angle": "history",
+      "relevance": 0.55,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 2 about history",
+      "snippet": "Snippet covering history."
+    },
+    {
+      "url": "https://news-3.example/article/3",
+      "angle": "funding",
+      "relevance": 0.88,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 3 about funding",
+      "snippet": "Snippet covering funding."
+    },
+    {
+      "url": "https://news-4.example/article/4",
+      "angle": "industry-reaction",
+      "relevance": 0.6,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 4 about industry-reaction",
+      "snippet": "Snippet covering industry-reaction."
+    },
+    {
+      "url": "https://news-5.example/article/5",
+      "angle": "market-impact",
+      "relevance": 0.95,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 5 about market-impact",
+      "snippet": "Snippet covering market-impact."
+    },
+    {
+      "url": "https://news-6.example/article/6",
+      "angle": "history",
+      "relevance": 0.73,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 6 about history",
+      "snippet": "Snippet covering history."
+    },
+    {
+      "url": "https://news-7.example/article/7",
+      "angle": "funding",
+      "relevance": 0.56,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 7 about funding",
+      "snippet": "Snippet covering funding."
+    },
+    {
+      "url": "https://news-8.example/article/8",
+      "angle": "industry-reaction",
+      "relevance": 0.59,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 8 about industry-reaction",
+      "snippet": "Snippet covering industry-reaction."
+    },
+    {
+      "url": "https://news-9.example/article/9",
+      "angle": "market-impact",
+      "relevance": 0.94,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 9 about market-impact",
+      "snippet": "Snippet covering market-impact."
+    },
+    {
+      "url": "https://news-10.example/article/10",
+      "angle": "history",
+      "relevance": 0.75,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 10 about history",
+      "snippet": "Snippet covering history."
+    },
+    {
+      "url": "https://news-11.example/article/11",
+      "angle": "funding",
+      "relevance": 0.97,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 11 about funding",
+      "snippet": "Snippet covering funding."
+    },
+    {
+      "url": "https://news-12.example/article/12",
+      "angle": "industry-reaction",
+      "relevance": 0.73,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 12 about industry-reaction",
+      "snippet": "Snippet covering industry-reaction."
+    },
+    {
+      "url": "https://news-13.example/article/13",
+      "angle": "market-impact",
+      "relevance": 0.97,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 13 about market-impact",
+      "snippet": "Snippet covering market-impact."
+    }
+  ],
+  "expected": {
+    "min_angles_covered": 3,
+    "max_wasted_fetches": 4
+  },
+  "overrides": {
+    "seed_queries": [
+      "industry-reaction",
+      "market-impact"
+    ]
+  }
+}

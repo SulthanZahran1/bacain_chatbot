@@ -1,0 +1,202 @@
+{
+  "id": "scn_095",
+  "source": {
+    "url": "https://medium.com/story/scn_095",
+    "domain_bucket": "standard",
+    "is_ai_topic": true,
+    "ground_truth_angles": 5,
+    "title": "New LLM agent framework"
+  },
+  "corpus": [
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "industry-reaction",
+      "relevance": 0.77,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 0 about industry-reaction",
+      "snippet": "Snippet covering industry-reaction."
+    },
+    {
+      "url": "https://news-1.example/article/1",
+      "angle": "market-impact",
+      "relevance": 0.73,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 1 about market-impact",
+      "snippet": "Snippet covering market-impact."
+    },
+    {
+      "url": "https://news-2.example/article/2",
+      "angle": "technical-details",
+      "relevance": 0.69,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 2 about technical-details",
+      "snippet": "Snippet covering technical-details."
+    },
+    {
+      "url": "https://news-3.example/article/3",
+      "angle": "funding",
+      "relevance": 0.8,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 3 about funding",
+      "snippet": "Snippet covering funding."
+    },
+    {
+      "url": "https://news-4.example/article/4",
+      "angle": "regulation",
+      "relevance": 0.75,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 4 about regulation",
+      "snippet": "Snippet covering regulation."
+    },
+    {
+      "url": "https://news-5.example/article/5",
+      "angle": "industry-reaction",
+      "relevance": 0.72,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 5 about industry-reaction",
+      "snippet": "Snippet covering industry-reaction."
+    },
+    {
+      "url": "https://news-6.example/article/6",
+      "angle": "market-impact",
+      "relevance": 0.57,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 6 about market-impact",
+      "snippet": "Snippet covering market-impact."
+    },
+    {
+      "url": "https://news-7.example/article/7",
+      "angle": "technical-details",
+      "relevance": 0.94,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 7 about technical-details",
+      "snippet": "Snippet covering technical-details."
+    },
+    {
+      "url": "https://news-8.example/article/8",
+      "angle": "funding",
+      "relevance": 0.81,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 8 about funding",
+      "snippet": "Snippet covering funding."
+    },
+    {
+      "url": "https://news-9.example/article/9",
+      "angle": "regulation",
+      "relevance": 0.66,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 9 about regulation",
+      "snippet": "Snippet covering regulation."
+    },
+    {
+      "url": "https://news-10.example/article/10",
+      "angle": "industry-reaction",
+      "relevance": 0.86,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 10 about industry-reaction",
+      "snippet": "Snippet covering industry-reaction."
+    },
+    {
+      "url": "https://news-11.example/article/11",
+      "angle": "market-impact",
+      "relevance": 0.55,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 11 about market-impact",
+      "snippet": "Snippet covering market-impact."
+    },
+    {
+      "url": "https://news-12.example/article/12",
+      "angle": "technical-details",
+      "relevance": 0.56,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 12 about technical-details",
+      "snippet": "Snippet covering technical-details."
+    },
+    {
+      "url": "https://news-13.example/article/13",
+      "angle": "funding",
+      "relevance": 0.88,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 13 about funding",
+      "snippet": "Snippet covering funding."
+    },
+    {
+      "url": "https://news-14.example/article/14",
+      "angle": "regulation",
+      "relevance": 0.97,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 14 about regulation",
+      "snippet": "Snippet covering regulation."
+    },
+    {
+      "url": "https://news-15.example/article/15",
+      "angle": "industry-reaction",
+      "relevance": 0.71,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 15 about industry-reaction",
+      "snippet": "Snippet covering industry-reaction."
+    },
+    {
+      "url": "https://news-16.example/article/16",
+      "angle": "market-impact",
+      "relevance": 0.94,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 16 about market-impact",
+      "snippet": "Snippet covering market-impact."
+    },
+    {
+      "url": "https://news-17.example/article/17",
+      "angle": "technical-details",
+      "relevance": 0.85,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 17 about technical-details",
+      "snippet": "Snippet covering technical-details."
+    },
+    {
+      "url": "https://news-18.example/article/18",
+      "angle": "funding",
+      "relevance": 0.75,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 18 about funding",
+      "snippet": "Snippet covering funding."
+    },
+    {
+      "url": "https://news-19.example/article/19",
+      "angle": "regulation",
+      "relevance": 0.86,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 19 about regulation",
+      "snippet": "Snippet covering regulation."
+    }
+  ],
+  "expected": {
+    "min_angles_covered": 3,
+    "max_wasted_fetches": 7
+  },
+  "overrides": {
+    "seed_queries": [
+      "industry-reaction",
+      "market-impact"
+    ]
+  }
+}

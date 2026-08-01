@@ -1,0 +1,133 @@
+{
+  "id": "scn_044",
+  "source": {
+    "url": "https://medium.com/story/scn_044",
+    "domain_bucket": "standard",
+    "is_ai_topic": true,
+    "ground_truth_angles": 4,
+    "title": "New LLM agent framework"
+  },
+  "corpus": [
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "mechanism",
+      "relevance": 0.59,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 0 about mechanism",
+      "snippet": "Snippet covering mechanism."
+    },
+    {
+      "url": "https://news-1.example/article/1",
+      "angle": "market-impact",
+      "relevance": 0.57,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 1 about market-impact",
+      "snippet": "Snippet covering market-impact."
+    },
+    {
+      "url": "https://news-2.example/article/2",
+      "angle": "security-implications",
+      "relevance": 0.84,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 2 about security-implications",
+      "snippet": "Snippet covering security-implications."
+    },
+    {
+      "url": "https://news-3.example/article/3",
+      "angle": "adoption",
+      "relevance": 0.55,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 3 about adoption",
+      "snippet": "Snippet covering adoption."
+    },
+    {
+      "url": "https://news-4.example/article/4",
+      "angle": "mechanism",
+      "relevance": 0.67,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 4 about mechanism",
+      "snippet": "Snippet covering mechanism."
+    },
+    {
+      "url": "https://news-5.example/article/5",
+      "angle": "market-impact",
+      "relevance": 0.63,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 5 about market-impact",
+      "snippet": "Snippet covering market-impact."
+    },
+    {
+      "url": "https://news-6.example/article/6",
+      "angle": "security-implications",
+      "relevance": 0.65,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 6 about security-implications",
+      "snippet": "Snippet covering security-implications."
+    },
+    {
+      "url": "https://news-7.example/article/7",
+      "angle": "adoption",
+      "relevance": 0.79,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 7 about adoption",
+      "snippet": "Snippet covering adoption."
+    },
+    {
+      "url": "https://news-8.example/article/8",
+      "angle": "mechanism",
+      "relevance": 0.74,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 8 about mechanism",
+      "snippet": "Snippet covering mechanism."
+    },
+    {
+      "url": "https://news-9.example/article/9",
+      "angle": "market-impact",
+      "relevance": 0.56,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 9 about market-impact",
+      "snippet": "Snippet covering market-impact."
+    },
+    {
+      "url": "https://news-10.example/article/10",
+      "angle": "security-implications",
+      "relevance": 0.88,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 10 about security-implications",
+      "snippet": "Snippet covering security-implications."
+    },
+    {
+      "url": "https://news-11.example/article/11",
+      "angle": "adoption",
+      "relevance": 0.61,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 11 about adoption",
+      "snippet": "Snippet covering adoption."
+    }
+  ],
+  "expected": {
+    "min_angles_covered": 2,
+    "max_wasted_fetches": 4
+  },
+  "overrides": {
+    "seed_queries": [
+      "mechanism",
+      "market-impact"
+    ],
+    "coverage_per_round": [
+      0.95
+    ]
+  }
+}

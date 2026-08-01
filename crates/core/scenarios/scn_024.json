@@ -1,0 +1,58 @@
+{
+  "id": "scn_024",
+  "source": {
+    "url": "https://unknown-blog.example/story/scn_024",
+    "domain_bucket": "default",
+    "is_ai_topic": false,
+    "ground_truth_angles": 2,
+    "title": "Quarterly industry report"
+  },
+  "corpus": [
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "history",
+      "relevance": 0.89,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 0 about history",
+      "snippet": "Snippet covering history."
+    },
+    {
+      "url": "https://news-1.example/article/1",
+      "angle": "funding",
+      "relevance": 0.95,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 1 about funding",
+      "snippet": "Snippet covering funding."
+    },
+    {
+      "url": "https://news-2.example/article/2",
+      "angle": "history",
+      "relevance": 0.6,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 2 about history",
+      "snippet": "Snippet covering history."
+    },
+    {
+      "url": "https://news-3.example/article/3",
+      "angle": "funding",
+      "relevance": 0.7,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 3 about funding",
+      "snippet": "Snippet covering funding."
+    }
+  ],
+  "expected": {
+    "min_angles_covered": 1,
+    "max_wasted_fetches": 1
+  },
+  "overrides": {
+    "seed_queries": [
+      "history",
+      "funding"
+    ]
+  }
+}

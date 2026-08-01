@@ -1,0 +1,270 @@
+//! LLM synthesis — one OpenAI-compatible chat completion with strict JSON
+//! output, one repair retry on parse failure (§5 Stage 6).
+
+use serde::{Deserialize, Serialize};
+
+use crate::error::PipelineError;
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Citation {
+    pub url: String,
+    pub context: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Synthesis {
+    pub summary: String,
+    pub deep_analysis: String,
+    pub critique: String,
+    pub citations: Vec<Citation>,
+}
+
+pub const SYSTEM_PROMPT: &str = r#"You are a rigorous technology analyst. You will be given:
+1. A source article (full text) and its metadata.
+2. A corpus of related articles fetched from search results (with their URLs).
+
+Produce a JSON object with exactly this schema:
+{
+  "summary":        "<1 paragraph, 80–140 words>",
+  "deep_analysis":  "<3–4 paragraphs: context, mechanism/claims, implications, tensions>",
+  "critique":       "<1–2 paragraphs: weaknesses, unsubstantiated claims, missing context>",
+  "citations":      [{"url": "...", "context": "<one line: what claim it supports>"}]
+}
+
+CITATION RULES (hard constraints):
+- You may ONLY cite URLs from the provided corpus. Never invent, guess, or reconstruct URLs.
+- Every citation must actually support the claim it is attached to.
+- The source article itself may be cited as [source].
+- If nothing in the corpus supports a claim, make the claim without a citation.
+- Use the exact URLs as given — do not alter protocol, host, or path."#;
+
+/// Build the user message: source article + related corpus with URLs.
+pub fn build_prompt(
+    source: &crate::fetcher::FetchedArticle,
+    related: &[crate::fetcher::FetchedArticle],
+) -> String {
+    let mut s = String::new();
+    s.push_str("## SOURCE ARTICLE\n");
+    s.push_str(&format!("URL: {}\n", source.url));
+    s.push_str(&format!("TITLE: {}\n", source.title));
+    if let Some(d) = &source.published_date {
+        s.push_str(&format!("PUBLISHED: {d}\n"));
+    }
+    s.push_str(&format!("TEXT:\n{}\n", source.text));
+    s.push_str("\n## RELATED ARTICLES (corpus)\n");
+    for (i, a) in related.iter().enumerate() {
+        s.push_str(&format!("\n[{i}] URL: {}\n", a.url));
+        s.push_str(&format!("TITLE: {}\n", a.title));
+        if let Some(d) = &a.published_date {
+            s.push_str(&format!("PUBLISHED: {d}\n"));
+        }
+        s.push_str(&format!("TEXT:\n{}\n", a.text));
+    }
+    s
+}
+
+/// LLM abstraction — the pipeline depends on this trait so the scenario
+/// suite can script the LLM (coverage assessor, query extractor, synthesis)
+/// without any network (§5 Stage 9: "The LLM is also mocked at this level").
+#[async_trait::async_trait]
+pub trait Llm: Send + Sync {
+    async fn chat_json(&self, system: &str, user: &str) -> Result<String, PipelineError>;
+    async fn synthesize(
+        &self,
+        source: &crate::fetcher::FetchedArticle,
+        related: &[crate::fetcher::FetchedArticle],
+    ) -> Result<Synthesis, PipelineError>;
+}
+
+/// OpenAI-compatible chat completion client (thin reqwest client; the spec's
+/// `async-openai` equivalent without the heavy dependency surface).
+#[derive(Debug, Clone)]
+pub struct LlmClient {
+    client: reqwest::Client,
+    base_url: String,
+    api_key: String,
+    model: String,
+}
+
+impl LlmClient {
+    pub fn new(base_url: String, api_key: String, model: String) -> Self {
+        LlmClient {
+            client: reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(90))
+                .build()
+                .expect("reqwest client"),
+            base_url: base_url.trim_end_matches('/').to_string(),
+            api_key,
+            model,
+        }
+    }
+
+    /// One chat completion with `response_format: {"type": "json_object"}`.
+    pub async fn chat_json(&self, system: &str, user: &str) -> Result<String, PipelineError> {
+        #[derive(Serialize)]
+        struct Msg<'a> {
+            role: &'a str,
+            content: String,
+        }
+        #[derive(Serialize)]
+        struct Req<'a> {
+            model: &'a str,
+            messages: Vec<Msg<'a>>,
+            temperature: f64,
+            max_tokens: u32,
+            response_format: serde_json::Value,
+        }
+        let req = Req {
+            model: &self.model,
+            messages: vec![
+                Msg {
+                    role: "system",
+                    content: system.to_string(),
+                },
+                Msg {
+                    role: "user",
+                    content: user.to_string(),
+                },
+            ],
+            temperature: 0.3,
+            max_tokens: 2000,
+            response_format: serde_json::json!({"type": "json_object"}),
+        };
+        let resp = self
+            .client
+            .post(format!("{}/chat/completions", self.base_url))
+            .bearer_auth(&self.api_key)
+            .json(&req)
+            .send()
+            .await
+            .map_err(|e| PipelineError::SynthesisFailed(format!("llm transport: {e}")))?;
+        let status = resp.status();
+        if !status.is_success() {
+            return Err(PipelineError::SynthesisFailed(format!("llm http {status}")));
+        }
+        #[derive(Deserialize)]
+        struct Resp {
+            choices: Vec<Choice>,
+        }
+        #[derive(Deserialize)]
+        struct Choice {
+            message: MsgOut,
+        }
+        #[derive(Deserialize)]
+        struct MsgOut {
+            content: Option<String>,
+        }
+        let body: Resp = resp
+            .json()
+            .await
+            .map_err(|e| PipelineError::SynthesisFailed(format!("llm decode: {e}")))?;
+        body.choices
+            .into_iter()
+            .next()
+            .and_then(|c| c.message.content)
+            .ok_or_else(|| PipelineError::SynthesisFailed("empty llm content".into()))
+    }
+
+    /// Full synthesis with one repair retry on JSON parse failure.
+    pub async fn synthesize(
+        &self,
+        source: &crate::fetcher::FetchedArticle,
+        related: &[crate::fetcher::FetchedArticle],
+    ) -> Result<Synthesis, PipelineError> {
+        let prompt = build_prompt(source, related);
+        let raw = self.chat_json(SYSTEM_PROMPT, &prompt).await?;
+        match serde_json::from_str::<Synthesis>(extract_json(&raw).as_str()) {
+            Ok(s) => Ok(s),
+            Err(first) => {
+                // Repair retry: "return valid JSON only".
+                let repair = format!("{prompt}\n\nYour previous response was not valid JSON: {first}\nReturn valid JSON only.");
+                let raw2 = self.chat_json(SYSTEM_PROMPT, &repair).await?;
+                serde_json::from_str::<Synthesis>(extract_json(&raw2).as_str()).map_err(|e| {
+                    PipelineError::SynthesisFailed(format!("json parse after repair: {e}"))
+                })
+            }
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl Llm for LlmClient {
+    async fn chat_json(&self, system: &str, user: &str) -> Result<String, PipelineError> {
+        LlmClient::chat_json(self, system, user).await
+    }
+
+    async fn synthesize(
+        &self,
+        source: &crate::fetcher::FetchedArticle,
+        related: &[crate::fetcher::FetchedArticle],
+    ) -> Result<Synthesis, PipelineError> {
+        LlmClient::synthesize(self, source, related).await
+    }
+}
+
+/// Some models wrap JSON in ```json fences or prose — extract the first
+/// balanced {...} block.
+pub fn extract_json(raw: &str) -> String {
+    let start = raw.find('{');
+    let end = raw.rfind('}');
+    match (start, end) {
+        (Some(s), Some(e)) if e > s => raw[s..=e].to_string(),
+        _ => raw.to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn extracts_balanced_json_from_fence() {
+        let raw = "```json\n{\"summary\": \"hi\"}\n```";
+        assert_eq!(extract_json(raw), "{\"summary\": \"hi\"}");
+    }
+
+    #[test]
+    fn extract_leaves_pure_json_alone() {
+        let raw = "{\"a\": 1}";
+        assert_eq!(extract_json(raw), raw);
+    }
+
+    #[test]
+    fn prompt_contains_corpus_urls() {
+        let src = crate::fetcher::FetchedArticle {
+            url: "https://src.example/1".into(),
+            title: "T".into(),
+            published_date: None,
+            author: None,
+            language: None,
+            text: "source text".into(),
+        };
+        let rel = vec![crate::fetcher::FetchedArticle {
+            url: "https://rel.example/2".into(),
+            title: "R".into(),
+            published_date: None,
+            author: None,
+            language: None,
+            text: "related text".into(),
+        }];
+        let p = build_prompt(&src, &rel);
+        assert!(p.contains("https://src.example/1"));
+        assert!(p.contains("https://rel.example/2"));
+    }
+
+    #[test]
+    fn synthesis_roundtrip() {
+        let s = Synthesis {
+            summary: "s".into(),
+            deep_analysis: "d".into(),
+            critique: "c".into(),
+            citations: vec![Citation {
+                url: "https://x".into(),
+                context: "claim".into(),
+            }],
+        };
+        let j = serde_json::to_string(&s).unwrap();
+        let back: Synthesis = serde_json::from_str(&j).unwrap();
+        assert_eq!(s, back);
+    }
+}

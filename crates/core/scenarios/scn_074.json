@@ -1,0 +1,94 @@
+{
+  "id": "scn_074",
+  "source": {
+    "url": "https://unknown-blog.example/story/scn_074",
+    "domain_bucket": "default",
+    "is_ai_topic": true,
+    "ground_truth_angles": 3,
+    "title": "New LLM agent framework"
+  },
+  "corpus": [
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "adoption",
+      "relevance": 0.73,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 0 about adoption",
+      "snippet": "Snippet covering adoption."
+    },
+    {
+      "url": "https://news-1.example/article/1",
+      "angle": "regulation",
+      "relevance": 0.55,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 1 about regulation",
+      "snippet": "Snippet covering regulation."
+    },
+    {
+      "url": "https://news-2.example/article/2",
+      "angle": "industry-reaction",
+      "relevance": 0.62,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 2 about industry-reaction",
+      "snippet": "Snippet covering industry-reaction."
+    },
+    {
+      "url": "https://news-3.example/article/3",
+      "angle": "adoption",
+      "relevance": 0.95,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 3 about adoption",
+      "snippet": "Snippet covering adoption."
+    },
+    {
+      "url": "https://news-4.example/article/4",
+      "angle": "regulation",
+      "relevance": 0.83,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 4 about regulation",
+      "snippet": "Snippet covering regulation."
+    },
+    {
+      "url": "https://news-5.example/article/5",
+      "angle": "industry-reaction",
+      "relevance": 0.92,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 5 about industry-reaction",
+      "snippet": "Snippet covering industry-reaction."
+    },
+    {
+      "url": "https://news-6.example/article/6",
+      "angle": "adoption",
+      "relevance": 0.92,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 6 about adoption",
+      "snippet": "Snippet covering adoption."
+    },
+    {
+      "url": "https://news-7.example/article/7",
+      "angle": "regulation",
+      "relevance": 0.76,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 7 about regulation",
+      "snippet": "Snippet covering regulation."
+    }
+  ],
+  "expected": {
+    "min_angles_covered": 1,
+    "max_wasted_fetches": 7
+  },
+  "overrides": {
+    "seed_queries": [
+      "adoption",
+      "regulation"
+    ]
+  }
+}

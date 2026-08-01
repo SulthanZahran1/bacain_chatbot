@@ -1,0 +1,182 @@
+{
+  "id": "scn_077",
+  "source": {
+    "url": "https://unknown-blog.example/story/scn_077",
+    "domain_bucket": "default",
+    "is_ai_topic": false,
+    "ground_truth_angles": 4,
+    "title": "Quarterly industry report"
+  },
+  "corpus": [
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "criticism",
+      "relevance": 0.96,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 0 about criticism",
+      "snippet": "Snippet covering criticism."
+    },
+    {
+      "url": "https://news-1.example/article/1",
+      "angle": "adoption",
+      "relevance": 0.92,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 1 about adoption",
+      "snippet": "Snippet covering adoption."
+    },
+    {
+      "url": "https://news-2.example/article/2",
+      "angle": "future-outlook",
+      "relevance": 0.75,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 2 about future-outlook",
+      "snippet": "Snippet covering future-outlook."
+    },
+    {
+      "url": "https://news-3.example/article/3",
+      "angle": "funding",
+      "relevance": 0.82,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 3 about funding",
+      "snippet": "Snippet covering funding."
+    },
+    {
+      "url": "https://news-4.example/article/4",
+      "angle": "criticism",
+      "relevance": 0.62,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 4 about criticism",
+      "snippet": "Snippet covering criticism."
+    },
+    {
+      "url": "https://news-5.example/article/5",
+      "angle": "adoption",
+      "relevance": 0.92,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 5 about adoption",
+      "snippet": "Snippet covering adoption."
+    },
+    {
+      "url": "https://news-6.example/article/6",
+      "angle": "future-outlook",
+      "relevance": 0.72,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 6 about future-outlook",
+      "snippet": "Snippet covering future-outlook."
+    },
+    {
+      "url": "https://news-7.example/article/7",
+      "angle": "funding",
+      "relevance": 0.83,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 7 about funding",
+      "snippet": "Snippet covering funding."
+    },
+    {
+      "url": "https://news-8.example/article/8",
+      "angle": "criticism",
+      "relevance": 0.66,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 8 about criticism",
+      "snippet": "Snippet covering criticism."
+    },
+    {
+      "url": "https://news-9.example/article/9",
+      "angle": "adoption",
+      "relevance": 0.91,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 9 about adoption",
+      "snippet": "Snippet covering adoption."
+    },
+    {
+      "url": "https://news-10.example/article/10",
+      "angle": "future-outlook",
+      "relevance": 0.83,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 10 about future-outlook",
+      "snippet": "Snippet covering future-outlook."
+    },
+    {
+      "url": "https://news-11.example/article/11",
+      "angle": "funding",
+      "relevance": 0.81,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 11 about funding",
+      "snippet": "Snippet covering funding."
+    },
+    {
+      "url": "https://news-12.example/article/12",
+      "angle": "criticism",
+      "relevance": 0.95,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 12 about criticism",
+      "snippet": "Snippet covering criticism."
+    },
+    {
+      "url": "https://news-13.example/article/13",
+      "angle": "adoption",
+      "relevance": 0.63,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 13 about adoption",
+      "snippet": "Snippet covering adoption."
+    },
+    {
+      "url": "https://news-14.example/article/14",
+      "angle": "future-outlook",
+      "relevance": 0.84,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 14 about future-outlook",
+      "snippet": "Snippet covering future-outlook."
+    },
+    {
+      "url": "https://news-15.example/article/15",
+      "angle": "funding",
+      "relevance": 0.89,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 15 about funding",
+      "snippet": "Snippet covering funding."
+    }
+  ],
+  "expected": {
+    "min_angles_covered": 3,
+    "max_wasted_fetches": 5
+  },
+  "overrides": {
+    "seed_queries": [
+      "criticism",
+      "adoption"
+    ],
+    "round_overrides": {
+      "1": [
+        "https://news-0.example/article/0",
+        "https://news-1.example/article/1",
+        "https://news-2.example/article/2",
+        "https://news-3.example/article/3",
+        "https://news-4.example/article/4",
+        "https://news-5.example/article/5",
+        "https://news-6.example/article/6",
+        "https://news-7.example/article/7"
+      ],
+      "2": [
+        "https://news-8.example/article/8",
+        "https://news-9.example/article/9"
+      ]
+    }
+  }
+}

@@ -1,0 +1,202 @@
+{
+  "id": "scn_029",
+  "source": {
+    "url": "https://reuters.com/story/scn_029",
+    "domain_bucket": "fast",
+    "is_ai_topic": true,
+    "ground_truth_angles": 4,
+    "title": "New LLM agent framework"
+  },
+  "corpus": [
+    {
+      "url": "https://news-0.example/article/0",
+      "angle": "criticism",
+      "relevance": 0.56,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 0 about criticism",
+      "snippet": "Snippet covering criticism."
+    },
+    {
+      "url": "https://news-1.example/article/1",
+      "angle": "future-outlook",
+      "relevance": 0.89,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 1 about future-outlook",
+      "snippet": "Snippet covering future-outlook."
+    },
+    {
+      "url": "https://news-2.example/article/2",
+      "angle": "adoption",
+      "relevance": 0.58,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 2 about adoption",
+      "snippet": "Snippet covering adoption."
+    },
+    {
+      "url": "https://news-3.example/article/3",
+      "angle": "market-impact",
+      "relevance": 0.93,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 3 about market-impact",
+      "snippet": "Snippet covering market-impact."
+    },
+    {
+      "url": "https://news-4.example/article/4",
+      "angle": "criticism",
+      "relevance": 0.93,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 4 about criticism",
+      "snippet": "Snippet covering criticism."
+    },
+    {
+      "url": "https://news-5.example/article/5",
+      "angle": "future-outlook",
+      "relevance": 0.62,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 5 about future-outlook",
+      "snippet": "Snippet covering future-outlook."
+    },
+    {
+      "url": "https://news-6.example/article/6",
+      "angle": "adoption",
+      "relevance": 0.91,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 6 about adoption",
+      "snippet": "Snippet covering adoption."
+    },
+    {
+      "url": "https://news-7.example/article/7",
+      "angle": "market-impact",
+      "relevance": 0.64,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 7 about market-impact",
+      "snippet": "Snippet covering market-impact."
+    },
+    {
+      "url": "https://news-8.example/article/8",
+      "angle": "criticism",
+      "relevance": 0.75,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 8 about criticism",
+      "snippet": "Snippet covering criticism."
+    },
+    {
+      "url": "https://news-9.example/article/9",
+      "angle": "future-outlook",
+      "relevance": 0.96,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 9 about future-outlook",
+      "snippet": "Snippet covering future-outlook."
+    },
+    {
+      "url": "https://news-10.example/article/10",
+      "angle": "adoption",
+      "relevance": 0.96,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 10 about adoption",
+      "snippet": "Snippet covering adoption."
+    },
+    {
+      "url": "https://news-11.example/article/11",
+      "angle": "market-impact",
+      "relevance": 0.76,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 11 about market-impact",
+      "snippet": "Snippet covering market-impact."
+    },
+    {
+      "url": "https://news-12.example/article/12",
+      "angle": "criticism",
+      "relevance": 0.86,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 12 about criticism",
+      "snippet": "Snippet covering criticism."
+    },
+    {
+      "url": "https://news-13.example/article/13",
+      "angle": "future-outlook",
+      "relevance": 0.64,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 13 about future-outlook",
+      "snippet": "Snippet covering future-outlook."
+    },
+    {
+      "url": "https://news-14.example/article/14",
+      "angle": "adoption",
+      "relevance": 0.6,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 14 about adoption",
+      "snippet": "Snippet covering adoption."
+    },
+    {
+      "url": "https://news-15.example/article/15",
+      "angle": "market-impact",
+      "relevance": 0.77,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 15 about market-impact",
+      "snippet": "Snippet covering market-impact."
+    },
+    {
+      "url": "https://news-16.example/article/16",
+      "angle": "criticism",
+      "relevance": 0.81,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 16 about criticism",
+      "snippet": "Snippet covering criticism."
+    },
+    {
+      "url": "https://news-17.example/article/17",
+      "angle": "future-outlook",
+      "relevance": 0.83,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 17 about future-outlook",
+      "snippet": "Snippet covering future-outlook."
+    },
+    {
+      "url": "https://news-18.example/article/18",
+      "angle": "adoption",
+      "relevance": 0.82,
+      "fetchable": false,
+      "published_date": "2026-07-28",
+      "title": "Related article 18 about adoption",
+      "snippet": "Snippet covering adoption."
+    },
+    {
+      "url": "https://news-19.example/article/19",
+      "angle": "market-impact",
+      "relevance": 0.58,
+      "fetchable": true,
+      "published_date": "2026-07-28",
+      "title": "Related article 19 about market-impact",
+      "snippet": "Snippet covering market-impact."
+    }
+  ],
+  "expected": {
+    "min_angles_covered": 2,
+    "max_wasted_fetches": 14
+  },
+  "overrides": {
+    "seed_queries": [
+      "criticism",
+      "future-outlook"
+    ]
+  }
+}
