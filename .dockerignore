@@ -1,0 +1,15 @@
+# Build context exclusions — keep the context small and secrets out.
+.git
+target
+.env
+*.db
+*.db-journal
+*.db-wal
+mutants.out
+data
+crates/core/scenarios
+crates/core/tests
+crates/bot/tests
+scripts
+Dockerfile
+docker-compose.yml
