@@ -184,7 +184,7 @@ async fn synthesize_fails_cleanly_after_repair() {
     };
     let e = c.synthesize(&src, &[]).await.unwrap_err();
     assert!(matches!(e, PipelineError::SynthesisFailed(_)));
-    assert!(e.to_string().contains("after repair"), "{e}");
+    assert!(e.to_string().contains("json parse"), "{e}");
 }
 
 #[tokio::test]
@@ -218,4 +218,42 @@ async fn synthesize_success_no_retry() {
     let s = c.synthesize(&src, &[]).await.unwrap();
     assert_eq!(s.citations.len(), 1);
     assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1, "no retry on success");
+}
+
+#[tokio::test]
+async fn synthesize_tolerates_duplicate_json_keys() {
+    // Real-world failure: the model emitted the same field twice and serde's
+    // struct parser rejected it hard ("duplicate field `deep_analysis`").
+    // Value-first parsing must accept it (last-wins) without a repair retry.
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let c2 = calls.clone();
+    std::thread::spawn(move || {
+        if let Ok((mut stream, _)) = listener.accept() {
+            let mut buf = [0u8; 4096];
+            let _ = stream.read(&mut buf);
+            c2.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            let body = ok_body(
+                r#""{\"summary\":\"s\",\"deep_analysis\":\"first\",\"deep_analysis\":\"second\",\"critique\":\"c\",\"citations\":[]}""#,
+            );
+            let resp = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                body.len()
+            );
+            let _ = stream.write_all(resp.as_bytes());
+        }
+    });
+    let c = client(port);
+    let src = linkbot_core::fetcher::FetchedArticle {
+        url: "https://src.example/1".into(),
+        title: "T".into(),
+        published_date: None,
+        author: None,
+        language: None,
+        text: "body".into(),
+    };
+    let s = c.synthesize(&src, &[]).await.unwrap();
+    assert_eq!(s.deep_analysis, "second", "last-wins on duplicate keys");
+    assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1, "no retry needed");
 }

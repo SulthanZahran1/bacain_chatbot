@@ -38,6 +38,12 @@ async fn main() {
 
     println!("URL: {url}");
     let t0 = std::time::Instant::now();
+    // Minimal tracing init so pipeline phase logs (classified / window /
+    // search round / coverage) surface with timestamps.
+    let _ = tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .with_timer(tracing_subscriber::fmt::time::uptime())
+        .try_init();
     let analysis = match analyze(
         AnalysisRequest { url: url.clone(), channel: ChannelCtx { id: channel } },
         &deps,
@@ -61,11 +67,11 @@ async fn main() {
     println!("stop_reason: {}", analysis.meta.stop_reason);
     println!("citations_rejected: {}", analysis.meta.citations_rejected);
     println!("llm_model: {}", analysis.meta.llm_model);
-    println!("summary (first 160): {}", &analysis.summary.chars().take(160).collect::<String>());
+    println!("summary (first 160): {}", analysis.summary.chars().take(160).collect::<String>());
     println!("--- CITATIONS ---");
     for (i, c) in analysis.citations.iter().enumerate() {
         println!("{i}: {}", c.url);
     }
-    println!("--- DEEP (first 160): {}", &analysis.deep_analysis.chars().take(160).collect::<String>());
-    println!("--- CRITIQUE (first 160): {}", &analysis.critique.chars().take(160).collect::<String>());
+    println!("--- DEEP (first 160): {}", analysis.deep_analysis.chars().take(160).collect::<String>());
+    println!("--- CRITIQUE (first 160): {}", analysis.critique.chars().take(160).collect::<String>());
 }

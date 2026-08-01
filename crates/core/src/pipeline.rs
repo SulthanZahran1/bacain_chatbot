@@ -190,18 +190,27 @@ pub async fn analyze(req: AnalysisRequest, deps: &Deps) -> Result<Analysis, Pipe
             }
             batch.push(h);
         }
-        for h in batch {
-            if fetched_urls.len() >= policy.search_budget {
-                if stop_reason.is_empty() {
-                    stop_reason = format!("budget({})", policy.search_budget);
-                }
-                break;
-            }
-            // Mark attempted BEFORE fetching so failed URLs are never
-            // re-fetched in later rounds (real search wouldn't re-serve
-            // dead links we already tried).
+        // Mark attempted BEFORE fetching so failed URLs are never
+        // re-fetched in later rounds (real search wouldn't re-serve
+        // dead links we already tried).
+        for h in &batch {
             fetched_urls.insert(h.url.clone());
-            match deps.fetcher.fetch(&h.url).await {
+        }
+        // Fetch the whole batch CONCURRENTLY — sequential fetches at
+        // ~2-5s per URL blow the 60s deadline on real hit sets.
+        let mut handles = Vec::with_capacity(batch.len());
+        for h in batch {
+            let fetcher = Arc::clone(&deps.fetcher);
+            handles.push(tokio::spawn(async move {
+                let url = h.url;
+                (url.clone(), fetcher.fetch(&url).await)
+            }));
+        }
+        for handle in handles {
+            let (url, res) = handle.await.map_err(|e| {
+                PipelineError::Internal(format!("fetch task join: {e}"))
+            })?;
+            match res {
                 Ok(a) => {
                     // Drop empty/failed fetches from corpus entirely.
                     if a.text.trim().is_empty() {
@@ -211,7 +220,7 @@ pub async fn analyze(req: AnalysisRequest, deps: &Deps) -> Result<Analysis, Pipe
                     corpus.push(a);
                 }
                 Err(e) => {
-                    warn!(url = %h.url, ?e, "hit fetch failed, dropped");
+                    warn!(url = %url, ?e, "hit fetch failed, dropped");
                 }
             }
             check_deadline(deadline)?;
@@ -270,10 +279,13 @@ pub async fn analyze(req: AnalysisRequest, deps: &Deps) -> Result<Analysis, Pipe
     source_trimmed.text = source_text;
 
     // ---- Stage 6+7 · Synthesize + validate ---------------------------------
-    let synthesis = deps
-        .llm
-        .synthesize(&source_trimmed, &related_trimmed)
-        .await?;
+    // Bound the synthesis call to the REMAINING deadline budget: the LLM
+    // client's own 90s timeout would otherwise sail past the 60s SLA.
+    let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+    let synthesis = tokio::time::timeout(remaining, deps.llm.synthesize(&source_trimmed, &related_trimmed))
+        .await
+        .map_err(|_| PipelineError::DeadlineExceeded)?
+        .map_err(|e| PipelineError::SynthesisFailed(format!("synthesis: {e}")))?;
     let mut pool = CitationPool::new();
     pool.insert(&source.url);
     for a in &corpus {

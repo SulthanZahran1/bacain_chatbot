@@ -129,7 +129,10 @@ impl LlmClient {
                 },
             ],
             temperature: 0.3,
-            max_tokens: 2000,
+            // Summary + 3-4 para deep analysis + critique routinely exceeds
+            // 2000 tokens on real articles; truncation cut the JSON mid-string
+            // ("EOF while parsing a string"). 4000 measured sufficient.
+            max_tokens: 4000,
             // deepseek-v4-flash on Ollama Cloud burns its whole budget on
             // hidden reasoning and returns empty content unless thinking is
             // disabled. Measured: 42s+empty → 7.6s+valid JSON.
@@ -171,6 +174,17 @@ impl LlmClient {
             .ok_or_else(|| PipelineError::SynthesisFailed("empty llm content".into()))
     }
 
+    /// Parse synthesis JSON tolerantly: model output can contain duplicate
+    /// keys ("duplicate field `deep_analysis`") which serde's struct parser
+    /// rejects hard. Value-parsing first (last-wins on dupes) makes the
+    /// output resilient.
+    fn parse_tolerant(raw: &str) -> Result<Synthesis, PipelineError> {
+        let v: serde_json::Value = serde_json::from_str(&extract_json(raw))
+            .map_err(|e| PipelineError::SynthesisFailed(format!("json parse: {e}")))?;
+        serde_json::from_value(v)
+            .map_err(|e| PipelineError::SynthesisFailed(format!("json shape: {e}")))
+    }
+
     /// Full synthesis with one repair retry on JSON parse failure.
     pub async fn synthesize(
         &self,
@@ -179,15 +193,13 @@ impl LlmClient {
     ) -> Result<Synthesis, PipelineError> {
         let prompt = build_prompt(source, related);
         let raw = self.chat_json(SYSTEM_PROMPT, &prompt).await?;
-        match serde_json::from_str::<Synthesis>(extract_json(&raw).as_str()) {
+        match Self::parse_tolerant(&raw) {
             Ok(s) => Ok(s),
             Err(first) => {
                 // Repair retry: "return valid JSON only".
                 let repair = format!("{prompt}\n\nYour previous response was not valid JSON: {first}\nReturn valid JSON only.");
                 let raw2 = self.chat_json(SYSTEM_PROMPT, &repair).await?;
-                serde_json::from_str::<Synthesis>(extract_json(&raw2).as_str()).map_err(|e| {
-                    PipelineError::SynthesisFailed(format!("json parse after repair: {e}"))
-                })
+                Self::parse_tolerant(&raw2)
             }
         }
     }
