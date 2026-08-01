@@ -28,6 +28,10 @@ optimized_policy.json.tmp
 *.db-wal
 mutants.out/
 <<<<<<< HEAD
+<<<<<<< HEAD
 mutants.out.old/
 =======
 >>>>>>> 6c868ed (test(core,bot): 83 new tests — loop mechanics, mock providers, provider contracts, edge cases, bot gates/rendering)
+=======
+mutants.out.old/
+>>>>>>> 959141b (chore: ignore stale mutants output dir)
