@@ -32,7 +32,15 @@ pub struct CachedAnalysis {
 }
 
 impl Cache {
+    /// Open (or create) the SQLite database at `path`, creating parent
+    /// directories as needed.
     pub fn open(path: &Path) -> Result<Self, PipelineError> {
+        if let Some(parent) = path.parent() {
+            if !parent.as_os_str().is_empty() {
+                std::fs::create_dir_all(parent)
+                    .map_err(|e| PipelineError::CacheError(format!("mkdir: {e}")))?;
+            }
+        }
         let conn =
             Connection::open(path).map_err(|e| PipelineError::CacheError(format!("open: {e}")))?;
         conn.execute_batch(
