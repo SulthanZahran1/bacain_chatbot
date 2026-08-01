@@ -74,6 +74,11 @@ impl Config {
                 .collect()
         };
 
+        // §9: env vars win; otherwise `optimized_policy.json` (path from
+        // OPTIMIZED_POLICY_JSON, default repo-root name) is loaded at startup.
+        let policy_path = std::env::var("OPTIMIZED_POLICY_JSON")
+            .unwrap_or_else(|_| "optimized_policy.json".to_string());
+
         let mut cfg = Config {
             discord_token: get("DISCORD_TOKEN"),
             tinyfish_api_key: get("TINYFISH_API_KEY"),
@@ -85,7 +90,7 @@ impl Config {
             analyze_channels: channels,
             cooldown_secs: parse_i64("COOLDOWN_SECS", 60),
             cache_ttl_hours: parse_i64("CACHE_TTL_HOURS", 24),
-            policy: Policy::from_env(),
+            policy: Policy::load_with_env_override(Some(&policy_path)),
             corpus_token_budget: parse_usize("CORPUS_TOKEN_BUDGET", 60_000),
             reply_mode: match get("REPLY_MODE").as_str() {
                 "split" => ReplyMode::Split,
