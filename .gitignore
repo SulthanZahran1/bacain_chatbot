@@ -1,0 +1,19 @@
+# Rust
+/target
+**/*.rs.bk
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Local config
+*.local
+
+# Logs
+*.log
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
