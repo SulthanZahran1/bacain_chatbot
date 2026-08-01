@@ -12,6 +12,18 @@ use linkbot_core::config::{Config, ReplyMode};
 use linkbot_core::error::PipelineError;
 use linkbot_core::optimizer_policy::Policy;
 
+/// Serializes ALL env-mutating tests in this binary. Env is process-global;
+/// parallel test threads racing on set_var/remove_var produce flaky failures
+/// (a policy test's INITIAL_K leaking into a config test's from_env, and
+/// vice versa).
+static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+/// Poison-tolerant lock acquisition: a panicking test must not cascade
+/// PoisonError into every later test.
+fn env_guard() -> std::sync::MutexGuard<'static, ()> {
+    ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner())
+}
+
 // ---------------------------------------------------------------------------
 // Cache (§5 Stage 8)
 // ---------------------------------------------------------------------------
@@ -187,6 +199,7 @@ fn clear_all_policy_env() {
 
 #[test]
 fn policy_defaults_match_spec() {
+    let _g = env_guard();
     let p = Policy::default();
     assert_eq!(p.initial_k, 5);
     assert_eq!(p.expansion_k, 3);
@@ -198,6 +211,7 @@ fn policy_defaults_match_spec() {
 
 #[test]
 fn policy_json_roundtrip() {
+    let _g = env_guard();
     let p = Policy {
         initial_k: 7,
         expansion_k: 3,
@@ -213,6 +227,7 @@ fn policy_json_roundtrip() {
 
 #[test]
 fn policy_from_env_all_fields() {
+    let _g = env_guard();
     set_all_policy_env(7, 4, 0.75, 2, 6, 30);
     let p = Policy::from_env();
     assert_eq!(p.initial_k, 7);
@@ -226,6 +241,7 @@ fn policy_from_env_all_fields() {
 
 #[test]
 fn policy_load_from_file_with_env_override() {
+    let _g = env_guard();
     set_all_policy_env(1, 1, 0.9, 0, 2, 9);
     let p = Policy {
         initial_k: 7,
@@ -248,6 +264,7 @@ fn policy_load_from_file_with_env_override() {
 
 #[test]
 fn policy_file_used_when_no_env() {
+    let _g = env_guard();
     clear_all_policy_env();
     let p = Policy {
         initial_k: 7,
@@ -267,6 +284,7 @@ fn policy_file_used_when_no_env() {
 
 #[test]
 fn policy_missing_file_falls_back_to_default() {
+    let _g = env_guard();
     clear_all_policy_env();
     let p = Policy::load_with_env_override(Some("/nonexistent/policy.json"));
     assert_eq!(p, Policy::default());
@@ -274,6 +292,7 @@ fn policy_missing_file_falls_back_to_default() {
 
 #[test]
 fn policy_bad_file_falls_back_to_default() {
+    let _g = env_guard();
     clear_all_policy_env();
     let dir = std::env::temp_dir().join("linkbot_policy_bad.json");
     std::fs::write(&dir, "not json").unwrap();
@@ -322,6 +341,9 @@ fn config_allow_all_channels() {
 
 #[test]
 fn config_from_env_full() {
+    let _g = env_guard();
+    // Guard against concurrent policy tests setting these env vars.
+    clear_all_policy_env();
     std::env::set_var("DISCORD_TOKEN", "tok");
     std::env::set_var("TINYFISH_API_KEY", "tf");
     std::env::set_var("EXA_API_KEY", "exa");
@@ -362,6 +384,9 @@ fn config_from_env_full() {
 
 #[test]
 fn config_from_env_star_means_all() {
+    let _g = env_guard();
+    // Guard against concurrent policy tests setting these env vars.
+    clear_all_policy_env();
     std::env::set_var("ANALYZE_CHANNELS", "*");
     let c = Config::from_env().unwrap();
     assert!(c.allow_all_channels);
@@ -371,6 +396,9 @@ fn config_from_env_star_means_all() {
 
 #[test]
 fn config_from_env_garbage_numbers_keep_defaults() {
+    let _g = env_guard();
+    // Guard against concurrent policy tests setting these env vars.
+    clear_all_policy_env();
     std::env::set_var("COOLDOWN_SECS", "not-a-number");
     std::env::set_var("CACHE_TTL_HOURS", "abc");
     let c = Config::from_env().unwrap();
@@ -383,6 +411,7 @@ fn config_from_env_garbage_numbers_keep_defaults() {
 #[test]
 fn config_from_env_negative_numbers_pass_through() {
     // parse_i64 has no sign clamp — a valid negative is accepted as-is.
+    let _g = env_guard();
     std::env::set_var("COOLDOWN_SECS", "-3");
     let c = Config::from_env().unwrap();
     assert_eq!(c.cooldown_secs, -3);
@@ -391,6 +420,7 @@ fn config_from_env_negative_numbers_pass_through() {
 
 #[test]
 fn config_invalid_domain_speed_json_errors() {
+    let _g = env_guard();
     std::env::set_var("DOMAIN_SPEED_JSON", "{{{");
     assert!(Config::from_env().is_err());
     std::env::remove_var("DOMAIN_SPEED_JSON");
