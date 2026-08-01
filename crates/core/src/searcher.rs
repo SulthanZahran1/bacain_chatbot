@@ -93,7 +93,9 @@ struct ExaRequest {
     num_results: usize,
     #[serde(rename = "type")]
     type_: String,
-    include_text: Option<String>, // "snippet" is default; keep minimal
+    /// Exa requires an ARRAY of phrases (max 5 words each), not a string.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    include_text: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     exclude_domains: Option<Vec<String>>,
 }
@@ -138,7 +140,7 @@ impl ExaSearchProvider {
             category,
             num_results: k,
             type_: "auto".into(),
-            include_text: Some("snippet".into()),
+            include_text: Some(vec!["snippet".into()]),
             exclude_domains,
         };
         let resp = self
@@ -266,7 +268,7 @@ impl TinyFishSearchProvider {
         let resp = self
             .client
             .post("https://api.search.tinyfish.ai/search")
-            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("X-API-Key", &self.api_key)
             .json(&req)
             .send()
             .await

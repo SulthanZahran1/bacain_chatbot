@@ -85,7 +85,7 @@ impl TinyFishFetcher {
             let resp = self
                 .client
                 .post("https://api.fetch.tinyfish.ai")
-                .header("Authorization", format!("Bearer {}", self.api_key))
+                .header("X-API-Key", &self.api_key)
                 .json(&req)
                 .send()
                 .await

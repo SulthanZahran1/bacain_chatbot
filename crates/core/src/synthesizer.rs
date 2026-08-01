@@ -112,6 +112,8 @@ impl LlmClient {
             messages: Vec<Msg<'a>>,
             temperature: f64,
             max_tokens: u32,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            think: Option<bool>,
             response_format: serde_json::Value,
         }
         let req = Req {
@@ -128,6 +130,10 @@ impl LlmClient {
             ],
             temperature: 0.3,
             max_tokens: 2000,
+            // deepseek-v4-flash on Ollama Cloud burns its whole budget on
+            // hidden reasoning and returns empty content unless thinking is
+            // disabled. Measured: 42s+empty → 7.6s+valid JSON.
+            think: Some(false),
             response_format: serde_json::json!({"type": "json_object"}),
         };
         let resp = self
