@@ -66,8 +66,10 @@ pub fn channel_gate_passes(cfg: &Config, channel_id: &str) -> bool {
 }
 
 /// Gate 2: never respond to bots (including ourselves).
-pub fn bot_self_gate_passes(msg: &Message) -> bool {
-    !msg.author.bot
+/// Takes `msg.author.bot` so the check stays pure and testable without
+/// constructing serenity's non-exhaustive `Message`.
+pub fn bot_self_gate_passes(is_bot: bool) -> bool {
+    !is_bot
 }
 
 /// Gate 3: per-channel cooldown (seconds since last analysis).
@@ -112,7 +114,7 @@ impl EventHandler for Handler {
         };
         let channel_id = msg.channel_id.to_string();
 
-        if !bot_self_gate_passes(&msg) {
+        if !bot_self_gate_passes(msg.author.bot) {
             return;
         }
         if msg.content.starts_with('/') {

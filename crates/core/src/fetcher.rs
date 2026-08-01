@@ -113,7 +113,7 @@ impl TinyFishFetcher {
             };
 
             if let Some(code) = result.error_code {
-                let err = map_error_code(&code);
+                let err = map_error_code_public(&code);
                 // Transient → one retry with backoff.
                 if matches!(
                     err,
@@ -143,7 +143,9 @@ impl TinyFishFetcher {
     }
 }
 
-fn map_error_code(code: &str) -> PipelineError {
+/// Map TinyFish per-URL error codes to the pipeline error taxonomy (§5
+/// Stage 1 / §10). Public so integration tests can pin the contract.
+pub fn map_error_code_public(code: &str) -> PipelineError {
     match code {
         "page_not_found" => PipelineError::PageNotFound,
         "target_unreachable" => PipelineError::TargetUnreachable,
@@ -171,24 +173,24 @@ mod tests {
     #[test]
     fn error_code_mapping_covers_taxonomy() {
         assert_eq!(
-            map_error_code("page_not_found"),
+            map_error_code_public("page_not_found"),
             PipelineError::PageNotFound
         );
-        assert_eq!(map_error_code("bot_blocked"), PipelineError::BotBlocked);
-        assert_eq!(map_error_code("timeout"), PipelineError::Timeout);
-        assert_eq!(map_error_code("proxy_error"), PipelineError::ProxyError);
-        assert_eq!(map_error_code("invalid_url"), PipelineError::InvalidUrl);
+        assert_eq!(map_error_code_public("bot_blocked"), PipelineError::BotBlocked);
+        assert_eq!(map_error_code_public("timeout"), PipelineError::Timeout);
+        assert_eq!(map_error_code_public("proxy_error"), PipelineError::ProxyError);
+        assert_eq!(map_error_code_public("invalid_url"), PipelineError::InvalidUrl);
         assert_eq!(
-            map_error_code("target_http_error"),
+            map_error_code_public("target_http_error"),
             PipelineError::TargetHttpError
         );
         assert_eq!(
-            map_error_code("target_unreachable"),
+            map_error_code_public("target_unreachable"),
             PipelineError::TargetUnreachable
         );
-        assert_eq!(map_error_code("empty_content"), PipelineError::EmptyContent);
+        assert_eq!(map_error_code_public("empty_content"), PipelineError::EmptyContent);
         assert!(matches!(
-            map_error_code("weird"),
+            map_error_code_public("weird"),
             PipelineError::Internal(_)
         ));
     }
@@ -198,7 +200,7 @@ mod tests {
         // No network in unit tests — the mock lives in mock_providers.rs;
         // here we only verify the empty-content rule via the error mapper.
         assert!(matches!(
-            map_error_code("empty_content"),
+            map_error_code_public("empty_content"),
             PipelineError::EmptyContent
         ));
     }

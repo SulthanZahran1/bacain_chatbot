@@ -27,4 +27,7 @@ optimized_policy.json.tmp
 *.db-shm
 *.db-wal
 mutants.out/
+<<<<<<< HEAD
 mutants.out.old/
+=======
+>>>>>>> 6c868ed (test(core,bot): 83 new tests — loop mechanics, mock providers, provider contracts, edge cases, bot gates/rendering)
