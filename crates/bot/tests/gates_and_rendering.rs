@@ -127,6 +127,7 @@ fn split_chunks_exact_boundary_single_chunk() {
 #[test]
 fn window_footer_includes_all_meta() {
     let a = Analysis {
+        title: "t".into(),
         summary: "s".into(),
         deep_analysis: "d".into(),
         critique: "c".into(),

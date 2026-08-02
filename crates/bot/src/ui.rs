@@ -84,9 +84,10 @@ pub async fn post_analysis(
         }
     };
 
-    // Msg 1 — Summary embed.
+    // Msg 1 — Summary embed. Title is the short 3-4 word title; the summary
+    // lives ONLY in the description (never duplicate it in the title).
     let embed = CreateEmbed::new()
-        .title(analysis.summary.chars().take(200).collect::<String>())
+        .title(&analysis.title)
         .description(&analysis.summary)
         .footer(CreateEmbedFooter::new(window_footer(analysis)));
     let _ = thread_id
@@ -114,11 +115,12 @@ pub async fn post_analysis(
         )
         .await;
 
-    // Msg 4 — Sources (numbered, verified only).
+    // Msg 4 — Sources (numbered, verified only). Wrap URLs in <> so Discord
+    // renders them as clickable links even after an em-dash.
     if !analysis.citations.is_empty() {
         let mut sources = String::from("## Sources\n");
         for (i, c) in analysis.citations.iter().enumerate() {
-            sources.push_str(&format!("[{}] {} — {}\n", i + 1, c.context, c.url));
+            sources.push_str(&format!("[{}] {} — <{}>\n", i + 1, c.context, c.url));
         }
         for chunk in split_chunks(&sources, MAX_MSG_CHARS) {
             let _ = thread_id
@@ -127,9 +129,8 @@ pub async fn post_analysis(
         }
     }
 
-    // Rename thread to the article title (best effort).
-    let title = analysis.summary.chars().take(60).collect::<String>();
-    let edit = serenity::builder::EditThread::new().name(format!("📚 {title}"));
+    // Rename thread to the short title (best effort).
+    let edit = serenity::builder::EditThread::new().name(format!("📚 {}", analysis.title));
     let _ = thread_id.edit_thread(&ctx.http, edit).await;
 
     Ok(())
@@ -188,6 +189,7 @@ mod tests {
     #[test]
     fn footer_shows_window() {
         let a = Analysis {
+            title: "t".into(),
             summary: "s".into(),
             deep_analysis: "d".into(),
             critique: "c".into(),

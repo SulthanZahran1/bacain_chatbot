@@ -56,6 +56,7 @@ async fn main() {
     let elapsed = t0.elapsed();
 
     println!("--- RESULT ({}ms) ---", elapsed.as_millis());
+    println!("title: {}", analysis.title);
     println!("bucket: {}", analysis.meta.bucket);
     println!("window_used: {}", analysis.meta.window_used);
     println!("recency_minutes: {:?}", analysis.meta.recency_minutes);

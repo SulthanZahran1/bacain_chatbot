@@ -13,10 +13,21 @@ pub struct Citation {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Synthesis {
+    /// 3-4 word plain title (used for the embed title + thread name).
+    #[serde(default)]
+    pub title: String,
     pub summary: String,
     pub deep_analysis: String,
     pub critique: String,
     pub citations: Vec<Citation>,
+}
+
+/// Fallback when the model omits `title`: first 3-4 words of the summary.
+pub fn title_from_summary(summary: &str) -> String {
+    let words: Vec<&str> = summary.split_whitespace().collect();
+    let n = words.len().min(4);
+    let t = words[..n].join(" ");
+    if t.is_empty() { "Link analysis".to_string() } else { t }
 }
 
 pub const SYSTEM_PROMPT: &str = r#"You are a rigorous technology analyst. You will be given:
@@ -25,6 +36,7 @@ pub const SYSTEM_PROMPT: &str = r#"You are a rigorous technology analyst. You wi
 
 Produce a JSON object with exactly this schema:
 {
+  "title":          "<3-4 word plain title: what the work is, no fluff>",
   "summary":        "<2–4 sentences, PLAIN language>",
   "deep_analysis":  "<3–4 paragraphs: context, mechanism/claims, implications, tensions>",
   "critique":       "<1–2 paragraphs: substantive weaknesses only>",
@@ -32,6 +44,8 @@ Produce a JSON object with exactly this schema:
 }
 
 SECTION GUIDANCE (hard constraints):
+- TITLE: 3-4 words, plain nouns/phrases, no articles or filler ("Lookahead Sparse
+  Attention", "Windows 8GB RAM Plan", "EU AI Act Deadline"). Not a sentence.
 - SUMMARY: Short, plain, effective. What the work is and why it matters,
   understandable by a technical reader who does NOT follow this domain.
   No jargon, no model names, no metrics unless essential. The summary must
@@ -196,8 +210,12 @@ impl LlmClient {
     fn parse_tolerant(raw: &str) -> Result<Synthesis, PipelineError> {
         let v: serde_json::Value = serde_json::from_str(&extract_json(raw))
             .map_err(|e| PipelineError::SynthesisFailed(format!("json parse: {e}")))?;
-        serde_json::from_value(v)
-            .map_err(|e| PipelineError::SynthesisFailed(format!("json shape: {e}")))
+        let mut s: Synthesis = serde_json::from_value(v)
+            .map_err(|e| PipelineError::SynthesisFailed(format!("json shape: {e}")))?;
+        if s.title.trim().is_empty() {
+            s.title = title_from_summary(&s.summary);
+        }
+        Ok(s)
     }
 
     /// Full synthesis with one repair retry on JSON parse failure.
@@ -288,6 +306,7 @@ mod tests {
     #[test]
     fn synthesis_roundtrip() {
         let s = Synthesis {
+            title: "t".into(),
             summary: "s".into(),
             deep_analysis: "d".into(),
             critique: "c".into(),

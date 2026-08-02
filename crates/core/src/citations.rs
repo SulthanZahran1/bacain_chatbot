@@ -116,6 +116,7 @@ mod tests {
     #[test]
     fn in_pool_citations_pass() {
         let mut s = Synthesis {
+            title: "t".into(),
             summary: "".into(),
             deep_analysis: "".into(),
             critique: "".into(),
@@ -141,6 +142,7 @@ mod tests {
     fn invented_url_is_pruned() {
         // The prompt-injection test from §13: model emits a fake URL.
         let mut s = Synthesis {
+            title: "t".into(),
             summary: "".into(),
             deep_analysis: "".into(),
             critique: "".into(),
@@ -167,6 +169,7 @@ mod tests {
     fn url_mutation_is_not_allowed() {
         // "exact URL" rule: scheme/host/path mutation fails membership.
         let mut s = Synthesis {
+            title: "t".into(),
             summary: "".into(),
             deep_analysis: "".into(),
             critique: "".into(),

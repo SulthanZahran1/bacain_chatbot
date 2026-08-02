@@ -298,6 +298,7 @@ fn validate_returns_exact_pool_url() {
     let mut p = CitationPool::new();
     p.insert("https://Example.com/Path");
     let mut s = Synthesis {
+        title: "t".into(),
         summary: "".into(),
         deep_analysis: "".into(),
         critique: "".into(),
@@ -314,6 +315,7 @@ fn all_legit_detects_any_out_of_pool() {
     let mut p = CitationPool::new();
     p.insert("https://a.com/1");
     let ok = Synthesis {
+        title: "t".into(),
         summary: "".into(),
         deep_analysis: "".into(),
         critique: "".into(),
@@ -321,6 +323,7 @@ fn all_legit_detects_any_out_of_pool() {
     };
     assert!(all_legit(&ok, &p));
     let bad = Synthesis {
+        title: "t".into(),
         summary: "".into(),
         deep_analysis: "".into(),
         critique: "".into(),
@@ -357,6 +360,7 @@ fn pool_from_includes_source_and_related() {
 fn validate_drops_all_when_nothing_in_pool() {
     let p = CitationPool::new();
     let mut s = Synthesis {
+        title: "t".into(),
         summary: "".into(),
         deep_analysis: "".into(),
         critique: "".into(),

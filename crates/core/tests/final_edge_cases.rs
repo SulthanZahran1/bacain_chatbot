@@ -24,6 +24,7 @@ fn env_guard() -> std::sync::MutexGuard<'static, ()> {
 
 fn sample_analysis() -> Analysis {
     Analysis {
+        title: "A title".into(),
         summary: "A summary".into(),
         deep_analysis: "Deep dive".into(),
         critique: "Critique".into(),
@@ -91,6 +92,7 @@ fn analysis_meta_unknown_fields_ignored() {
 #[test]
 fn synthesis_into_analysis_fields() {
     let s = Synthesis {
+        title: "t".into(),
         summary: "s1".into(),
         deep_analysis: "d1".into(),
         critique: "c1".into(),

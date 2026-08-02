@@ -465,6 +465,7 @@ impl Llm for ScriptedLlm {
             context: "source".into(),
         });
         Ok(Synthesis {
+            title: "scripted title".into(),
             summary: "scripted summary".into(),
             deep_analysis: "scripted deep analysis".into(),
             critique: "scripted critique".into(),

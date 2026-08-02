@@ -59,6 +59,10 @@ pub struct AnalysisMeta {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Analysis {
+    /// 3-4 word title (embed title + thread name). Default so older
+    /// payloads (pre-title schema) still deserialize.
+    #[serde(default)]
+    pub title: String,
     pub summary: String,
     pub deep_analysis: String,
     pub critique: String,
@@ -372,6 +376,7 @@ pub async fn analyze(req: AnalysisRequest, deps: &Deps) -> Result<Analysis, Pipe
     // ---- Analysis assembly -------------------------------------------------
     let latency = started.elapsed().as_millis() as u64;
     let analysis = Analysis {
+        title: synthesis.title.clone(),
         summary: synthesis.summary,
         deep_analysis: synthesis.deep_analysis,
         critique: synthesis.critique,
