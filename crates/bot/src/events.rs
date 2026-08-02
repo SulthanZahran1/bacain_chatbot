@@ -189,6 +189,9 @@ impl EventHandler for Handler {
                     recent.truncate(10);
                 }
                 Err(e) => {
+                    // Log the REAL error — the user-facing message is a
+                    // generic apology; diagnostics must survive in logs.
+                    tracing::warn!(url = %cache_key, ?e, "analysis failed");
                     let _ = ui::post_error(&ctx2, &msg2, &e).await;
                     let _ = msg2
                         .delete_reaction(

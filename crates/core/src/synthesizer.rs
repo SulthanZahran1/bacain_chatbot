@@ -178,18 +178,34 @@ impl LlmClient {
             think: Some(false),
             response_format: serde_json::json!({"type": "json_object"}),
         };
-        let resp = self
-            .client
-            .post(format!("{}/chat/completions", self.base_url))
-            .bearer_auth(&self.api_key)
-            .json(&req)
-            .send()
-            .await
-            .map_err(|e| PipelineError::SynthesisFailed(format!("llm transport: {e}")))?;
-        let status = resp.status();
-        if !status.is_success() {
+        // §10: transient LLM failures (transport / 429 / 5xx) get ONE retry
+        // with backoff before surfacing the user-facing apology. A single
+        // upstream hiccup shouldn't kill an otherwise-fine analysis.
+        let mut attempt = 0;
+        let resp = loop {
+            let resp = self
+                .client
+                .post(format!("{}/chat/completions", self.base_url))
+                .bearer_auth(&self.api_key)
+                .json(&req)
+                .send()
+                .await
+                .map_err(|e| PipelineError::SynthesisFailed(format!("llm transport: {e}")))?;
+            let status = resp.status();
+            if status.is_success() {
+                break resp;
+            }
+            let transient = status == reqwest::StatusCode::TOO_MANY_REQUESTS
+                || status.is_server_error()
+                || status == reqwest::StatusCode::REQUEST_TIMEOUT
+                || status == reqwest::StatusCode::GATEWAY_TIMEOUT;
+            if transient && attempt == 0 {
+                attempt += 1;
+                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                continue;
+            }
             return Err(PipelineError::SynthesisFailed(format!("llm http {status}")));
-        }
+        };
         #[derive(Deserialize)]
         struct Resp {
             choices: Vec<Choice>,

@@ -43,6 +43,29 @@ fn client(port: u16) -> LlmClient {
     )
 }
 
+/// Serve a SEQUENCE of responses, one per request, in order. Returns port.
+fn serve_n(responses: Vec<(String, String)>) -> (u16, std::sync::Arc<std::sync::Mutex<String>>) {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let captured: std::sync::Arc<std::sync::Mutex<String>> = std::sync::Arc::default();
+    let cap2 = captured.clone();
+    std::thread::spawn(move || {
+        for (status_line, body) in responses {
+            if let Ok((mut stream, _)) = listener.accept() {
+                let mut buf = [0u8; 4096];
+                let n = stream.read(&mut buf).unwrap_or(0);
+                *cap2.lock().unwrap() = String::from_utf8_lossy(&buf[..n]).to_string();
+                let resp = format!(
+                    "HTTP/1.1 {status_line}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                    body.len()
+                );
+                let _ = stream.write_all(resp.as_bytes());
+            }
+        }
+    });
+    (port, captured)
+}
+
 fn ok_body(content: &str) -> String {
     format!(r#"{{"choices":[{{"message":{{"content":{content}}}}}]}}"#)
 }
@@ -73,11 +96,27 @@ async fn chat_json_sends_auth_and_json_body() {
 
 #[tokio::test]
 async fn chat_json_http_500_maps_to_synthesis_failed() {
-    let (port, _) = serve_once("500 Internal Server Error", "{}".to_string());
+    // Serve TWO 500s — the client retries once on 5xx (§10) before giving up.
+    let (port, _) = serve_n(vec![
+        ("500 Internal Server Error".to_string(), "{}".to_string()),
+        ("500 Internal Server Error".to_string(), "{}".to_string()),
+    ]);
     let c = client(port);
     let e = c.chat_json("sys", "usr").await.unwrap_err();
     assert!(matches!(e, PipelineError::SynthesisFailed(_)));
     assert!(e.to_string().contains("http 500"), "{e}");
+}
+
+#[tokio::test]
+async fn chat_json_retries_once_on_transient_5xx_then_succeeds() {
+    // First attempt 500 (transient), second attempt 200 — retry must recover.
+    let (port, _) = serve_n(vec![
+        ("500 Internal Server Error".to_string(), "{}".to_string()),
+        ("200 OK".to_string(), ok_body(r#""ok""#)),
+    ]);
+    let c = client(port);
+    let out = c.chat_json("sys", "usr").await.unwrap();
+    assert_eq!(out, "ok");
 }
 
 #[tokio::test]
