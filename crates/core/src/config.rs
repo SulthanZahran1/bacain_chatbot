@@ -25,6 +25,10 @@ pub struct Config {
 
     pub corpus_token_budget: usize,
     pub reply_mode: ReplyMode,
+    /// Whole-analysis deadline in seconds (§7 SLA). Configurable via
+    /// `ANALYSIS_DEADLINE_SECS` — default 180s so slow upstreams don't
+    /// truncate a personal-use analysis (latency is not a concern).
+    pub analysis_deadline_secs: u64,
 
     // --- domain speed table override (DOMAIN_SPEED_JSON) ---
     pub domain_speed: DomainSpeedTable,
@@ -52,6 +56,7 @@ impl Default for Config {
             policy: Policy::default(),
             corpus_token_budget: 60_000,
             reply_mode: ReplyMode::Thread,
+            analysis_deadline_secs: 180,
             domain_speed: DomainSpeedTable::default(),
         }
     }
@@ -93,6 +98,7 @@ impl Config {
                 "split" => ReplyMode::Split,
                 _ => ReplyMode::Thread,
             },
+            analysis_deadline_secs: parse_u64("ANALYSIS_DEADLINE_SECS", 180),
             domain_speed: DomainSpeedTable::default(),
         };
 
@@ -118,6 +124,12 @@ fn parse_i64(key: &str, default: i64) -> i64 {
         .unwrap_or(default)
 }
 fn parse_usize(key: &str, default: usize) -> usize {
+    std::env::var(key)
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(default)
+}
+fn parse_u64(key: &str, default: u64) -> u64 {
     std::env::var(key)
         .ok()
         .and_then(|v| v.parse().ok())

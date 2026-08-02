@@ -89,7 +89,7 @@ pub struct Coverage {
 /// The pipeline entry point.
 pub async fn analyze(req: AnalysisRequest, deps: &Deps) -> Result<Analysis, PipelineError> {
     let started = Instant::now();
-    let deadline = started + Duration::from_secs(60);
+    let deadline = started + Duration::from_secs(deps.config.analysis_deadline_secs);
 
     let url = crate::normalize_url(&req.url).ok_or(PipelineError::InvalidUrl)?;
 
@@ -166,11 +166,30 @@ pub async fn analyze(req: AnalysisRequest, deps: &Deps) -> Result<Analysis, Pipe
         info!(round = rounds, k, "search round");
 
         // Search (exclude source domain so we don't re-find the article).
-        let hits = match deps
-            .searcher
-            .search(&queries, freshness, k, deps.clock.now_unix())
+        // Bounded: search alone must not eat the whole deadline — reserve
+        // 30s for fetch + coverage + synthesis.
+        let search_deadline = deadline
+            .checked_sub(Duration::from_secs(30))
+            .unwrap_or(deadline);
+        let search_remaining = search_deadline.saturating_duration_since(std::time::Instant::now());
+        let hits = if search_remaining.is_zero() {
+            Err(PipelineError::DeadlineExceeded)
+        } else {
+            match tokio::time::timeout(
+                search_remaining,
+                deps.searcher
+                    .search(&queries, freshness, k, deps.clock.now_unix()),
+            )
             .await
-        {
+            {
+                Ok(r) => r,
+                Err(_) => {
+                    warn!("search exceeded phase budget; stopping loop gracefully");
+                    Err(PipelineError::SearchFailed("search phase budget".into()))
+                }
+            }
+        };
+        let hits = match hits {
             Ok(h) => h,
             Err(e) => {
                 // §10: search backend failure degrades gracefully — stop the
@@ -202,7 +221,12 @@ pub async fn analyze(req: AnalysisRequest, deps: &Deps) -> Result<Analysis, Pipe
             fetched_urls.insert(h.url.clone());
         }
         // Fetch the whole batch CONCURRENTLY — sequential fetches at
-        // ~2-5s per URL blow the 60s deadline on real hit sets.
+        // ~2-5s per URL blow the 60s deadline on real hit sets. The join is
+        // bounded: whatever hasn't returned by (deadline − 20s synthesis
+        // reserve) is abandoned so we always reach synthesis.
+        let fetch_deadline = deadline
+            .checked_sub(Duration::from_secs(20))
+            .unwrap_or(deadline);
         let mut handles = Vec::with_capacity(batch.len());
         for h in batch {
             let fetcher = Arc::clone(&deps.fetcher);
@@ -212,9 +236,21 @@ pub async fn analyze(req: AnalysisRequest, deps: &Deps) -> Result<Analysis, Pipe
             }));
         }
         for handle in handles {
-            let (url, res) = handle.await.map_err(|e| {
-                PipelineError::Internal(format!("fetch task join: {e}"))
-            })?;
+            let remaining = fetch_deadline.saturating_duration_since(std::time::Instant::now());
+            if remaining.is_zero() {
+                // Abandon the rest of the batch — we've reserved time for
+                // coverage + synthesis.
+                warn!("fetch batch hit phase budget; abandoning remaining hits");
+                break;
+            }
+            let res = match tokio::time::timeout(remaining, handle).await {
+                Ok(r) => r.map_err(|e| PipelineError::Internal(format!("fetch task join: {e}")))?,
+                Err(_) => {
+                    warn!("fetch task exceeded phase budget; abandoned");
+                    continue;
+                }
+            };
+            let (url, res) = res;
             match res {
                 Ok(a) => {
                     // Drop empty/failed fetches from corpus entirely.
@@ -235,7 +271,25 @@ pub async fn analyze(req: AnalysisRequest, deps: &Deps) -> Result<Analysis, Pipe
         }
 
         // ---- Coverage assessment (LLM) ------------------------------------
-        let assess = assess_coverage(deps, &source, &corpus).await;
+        // Bounded: reserve ~15s for synthesis. If the assessor stalls, treat
+        // coverage as sufficient and move on (same graceful path as failure).
+        let cov_deadline = deadline
+            .checked_sub(Duration::from_secs(15))
+            .unwrap_or(deadline);
+        let cov_remaining = cov_deadline.saturating_duration_since(std::time::Instant::now());
+        let assess = if cov_remaining.is_zero() {
+            Err(PipelineError::DeadlineExceeded)
+        } else {
+            match tokio::time::timeout(cov_remaining, assess_coverage(deps, &source, &corpus))
+                .await
+            {
+                Ok(r) => r,
+                Err(_) => {
+                    warn!("coverage assessment exceeded phase budget");
+                    Err(PipelineError::DeadlineExceeded)
+                }
+            }
+        };
         match assess {
             Ok(c) => {
                 current_coverage = c.coverage;

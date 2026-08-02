@@ -12,6 +12,12 @@ use linkbot_core::pipeline::{analyze, Analysis, AnalysisMeta, AnalysisRequest, C
 use linkbot_core::scenario::{Scenario, ScenarioArticle, ScenarioExpectation, ScenarioOverrides, ScenarioSource};
 use linkbot_core::synthesizer::{Citation, Synthesis};
 
+/// Serializes env-mutating tests in this binary (env is process-global).
+static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+fn env_guard() -> std::sync::MutexGuard<'static, ()> {
+    ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner())
+}
+
 // ---------------------------------------------------------------------------
 // Analysis serde contract
 // ---------------------------------------------------------------------------
@@ -100,6 +106,7 @@ fn synthesis_into_analysis_fields() {
 
 #[test]
 fn config_domain_speed_env_override_applies() {
+    let _g = env_guard();
     std::env::set_var(
         "DOMAIN_SPEED_JSON",
         r#"{"buckets":{"fast":{"window_minutes":10080,"domains":["mycorp.example"]}}}"#,
@@ -113,6 +120,7 @@ fn config_domain_speed_env_override_applies() {
 
 #[test]
 fn config_empty_domain_speed_env_ignored() {
+    let _g = env_guard();
     std::env::set_var("DOMAIN_SPEED_JSON", "   ");
     let c = Config::from_env().unwrap();
     let w = linkbot_core::domain_speed::resolve_window(&c.domain_speed, "https://reuters.com/x", false);

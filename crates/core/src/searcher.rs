@@ -184,14 +184,45 @@ impl SearchProvider for ExaSearchProvider {
         k: usize,
         now_unix: i64,
     ) -> Result<Vec<SearchHit>, PipelineError> {
+        // Queries run CONCURRENTLY — sequential calls at ~10-15s each blew
+        // the 60s pipeline deadline before fetching even started (measured
+        // live: 49s in search+fetch with 3 sequential queries).
+        let mut set = tokio::task::JoinSet::new();
+        for q in queries {
+            let prov = self.clone();
+            let q = q.clone();
+            set.spawn(async move { prov.run(q, window, k, now_unix, None).await });
+        }
         let mut all = Vec::new();
         let mut seen = std::collections::HashSet::new();
-        for q in queries {
-            let hits = self.run(q.clone(), window, k, now_unix, None).await?;
-            for h in hits {
-                if seen.insert(h.url.clone()) {
-                    all.push(h);
+        let mut first_err: Option<PipelineError> = None;
+        while let Some(res) = set.join_next().await {
+            match res {
+                Ok(Ok(hits)) => {
+                    for h in hits {
+                        if seen.insert(h.url.clone()) {
+                            all.push(h);
+                        }
+                    }
                 }
+                Ok(Err(e)) => {
+                    if first_err.is_none() {
+                        first_err = Some(e);
+                    }
+                }
+                Err(e) => {
+                    if first_err.is_none() {
+                        first_err = Some(PipelineError::Internal(format!("search task join: {e}")));
+                    }
+                }
+            }
+        }
+        // Only surface an error if we got nothing at all — partial results
+        // are better than an aborted search (one query 429ing shouldn't
+        // discard the others' hits).
+        if all.is_empty() {
+            if let Some(e) = first_err {
+                return Err(e);
             }
         }
         Ok(all)
@@ -305,14 +336,40 @@ impl SearchProvider for TinyFishSearchProvider {
         k: usize,
         _now_unix: i64,
     ) -> Result<Vec<SearchHit>, PipelineError> {
+        // Queries run CONCURRENTLY — see ExaSearchProvider::search.
+        let mut set = tokio::task::JoinSet::new();
+        for q in queries {
+            let prov = self.clone();
+            let q = q.clone();
+            set.spawn(async move { prov.run(q, window, k).await });
+        }
         let mut all = Vec::new();
         let mut seen = std::collections::HashSet::new();
-        for q in queries {
-            let hits = self.run(q.clone(), window, k).await?;
-            for h in hits {
-                if seen.insert(h.url.clone()) {
-                    all.push(h);
+        let mut first_err: Option<PipelineError> = None;
+        while let Some(res) = set.join_next().await {
+            match res {
+                Ok(Ok(hits)) => {
+                    for h in hits {
+                        if seen.insert(h.url.clone()) {
+                            all.push(h);
+                        }
+                    }
                 }
+                Ok(Err(e)) => {
+                    if first_err.is_none() {
+                        first_err = Some(e);
+                    }
+                }
+                Err(e) => {
+                    if first_err.is_none() {
+                        first_err = Some(PipelineError::Internal(format!("search task join: {e}")));
+                    }
+                }
+            }
+        }
+        if all.is_empty() {
+            if let Some(e) = first_err {
+                return Err(e);
             }
         }
         Ok(all)
