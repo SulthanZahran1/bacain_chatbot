@@ -152,6 +152,14 @@ pub async fn analyze(req: AnalysisRequest, deps: &Deps) -> Result<Analysis, Pipe
     let mut angles: Vec<String> = Vec::new();
 
     while rounds < policy.max_rounds {
+        // Deadline guard: each round costs ~10-20s (search + fetches +
+        // coverage LLM). If the remaining budget can't fit one more round
+        // AND a synthesis, stop and synthesize from what we have.
+        let remaining = deadline.saturating_duration_since(std::time::Instant::now());
+        if remaining < std::time::Duration::from_secs(25) {
+            stop_reason = format!("deadline-guard(round {})", rounds + 1);
+            break;
+        }
         rounds += 1;
         let k = if rounds == 1 {
             policy.initial_k
