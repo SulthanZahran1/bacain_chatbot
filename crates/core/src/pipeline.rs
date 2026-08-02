@@ -11,7 +11,6 @@ use std::time::{Duration, Instant};
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
 
-use crate::cache::Cache;
 use crate::citations::{self, CitationPool};
 use crate::classifier;
 use crate::clock::Clock;
@@ -73,7 +72,6 @@ pub struct Deps {
     pub fetcher: Arc<dyn Fetcher>,
     pub searcher: Arc<dyn SearchProvider>,
     pub llm: Arc<dyn Llm>,
-    pub cache: Arc<Cache>,
     pub clock: Clock,
     pub config: Arc<Config>,
 }
@@ -94,7 +92,6 @@ pub async fn analyze(req: AnalysisRequest, deps: &Deps) -> Result<Analysis, Pipe
     let deadline = started + Duration::from_secs(60);
 
     let url = crate::normalize_url(&req.url).ok_or(PipelineError::InvalidUrl)?;
-    let now = deps.clock.now_unix();
 
     // ---- Stage 1 · Fetch the source --------------------------------------
     let source = deps.fetcher.fetch(&url).await?;
@@ -344,18 +341,6 @@ pub async fn analyze(req: AnalysisRequest, deps: &Deps) -> Result<Analysis, Pipe
             citations_rejected: rejected_count,
         },
     };
-
-    // ---- Stage 8 · Cache write ----------------------------------------------
-    if let Ok(json) = serde_json::to_string(&analysis) {
-        let _ = deps.cache.put(
-            &url,
-            &req.channel.id,
-            &json,
-            &analysis.meta.window_used,
-            &analysis.meta.bucket,
-            now,
-        );
-    }
 
     Ok(analysis)
 }

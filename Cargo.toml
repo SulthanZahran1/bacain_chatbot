@@ -17,8 +17,6 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 thiserror = "2"
 async-trait = "0.1"
 url = "2"
-sha2 = "0.10"
-rusqlite = { version = "0.32", features = ["bundled"] }
 chrono = { version = "0.4", features = ["serde"] }
 rand = "0.8"
 

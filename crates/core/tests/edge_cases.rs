@@ -384,7 +384,6 @@ fn every_error_maps_to_nonempty_message() {
         PipelineError::ProxyError,
         PipelineError::SearchFailed("x".into()),
         PipelineError::SynthesisFailed("x".into()),
-        PipelineError::CacheError("x".into()),
         PipelineError::Internal("x".into()),
         PipelineError::DeadlineExceeded,
     ];

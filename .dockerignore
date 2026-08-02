@@ -6,7 +6,6 @@ target
 *.db-journal
 *.db-wal
 mutants.out
-data
 crates/core/scenarios
 crates/core/tests
 crates/bot/tests

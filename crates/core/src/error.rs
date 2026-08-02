@@ -25,8 +25,6 @@ pub enum PipelineError {
     SearchFailed(String),
     #[error("llm synthesis failed: {0}")]
     SynthesisFailed(String),
-    #[error("cache error: {0}")]
-    CacheError(String),
     #[error("internal: {0}")]
     Internal(String),
     #[error("deadline exceeded")]
@@ -54,7 +52,6 @@ pub fn user_message(e: &PipelineError) -> UserMessage {
         SynthesisFailed(_) => UserMessage::error(
             "The analysis engine failed to produce a response. Sorry about that!",
         ),
-        CacheError(_) => UserMessage::error("Internal storage hiccup — try again shortly."),
         Internal(_) => UserMessage::error("Something went wrong internally."),
         DeadlineExceeded => UserMessage::error("Analysis took too long and was cut off."),
     }
@@ -98,7 +95,6 @@ mod tests {
             PipelineError::ProxyError,
             PipelineError::SearchFailed("x".into()),
             PipelineError::SynthesisFailed("x".into()),
-            PipelineError::CacheError("x".into()),
             PipelineError::Internal("x".into()),
             PipelineError::DeadlineExceeded,
         ];

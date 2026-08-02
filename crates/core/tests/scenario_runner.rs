@@ -4,7 +4,6 @@
 
 use std::sync::Arc;
 
-use linkbot_core::cache::Cache;
 use linkbot_core::clock::{Clock, FakeClock};
 use linkbot_core::config::Config;
 use linkbot_core::error::PipelineError;
@@ -311,7 +310,6 @@ async fn full_loop_honors_policy_budget() {
         3,
         &scn.corpus,
     ));
-    let cache = Arc::new(Cache::in_memory().unwrap());
     let clock: Clock = Arc::new(FakeClock::new(1_785_484_800));
     let config = Config {
         policy: Policy { initial_k: 3, expansion_k: 2, coverage_target: 0.85, min_new_articles: 1, max_rounds: 3, search_budget: 10 },
@@ -321,7 +319,6 @@ async fn full_loop_honors_policy_budget() {
         fetcher: fetcher.clone(),
         searcher,
         llm,
-        cache,
         clock,
         config: Arc::new(config),
     };

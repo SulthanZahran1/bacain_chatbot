@@ -4,7 +4,6 @@
 
 use std::sync::Arc;
 
-use linkbot_core::cache::Cache;
 use linkbot_core::clock::{Clock, FakeClock};
 use linkbot_core::config::Config;
 use linkbot_core::error::PipelineError;
@@ -87,7 +86,6 @@ fn make_deps(scn: &Scenario, policy: Policy) -> Deps {
         scn.source.ground_truth_angles,
         &scn.corpus,
     ));
-    let cache = Arc::new(Cache::in_memory().unwrap());
     let clock: Clock = Arc::new(FakeClock::new(1_785_484_800));
     let config = Config {
         policy,
@@ -97,7 +95,6 @@ fn make_deps(scn: &Scenario, policy: Policy) -> Deps {
         fetcher,
         searcher,
         llm,
-        cache,
         clock,
         config: Arc::new(config),
     }
@@ -171,30 +168,6 @@ async fn zero_related_results_analyzes_source_alone() {
     assert!(analysis.meta.corpus_size <= 1);
     // No panic, analysis still produced.
     assert!(!analysis.critique.is_empty());
-}
-
-#[tokio::test]
-async fn cache_is_written_after_analysis() {
-    let scn = scenario_with(vec!["mechanism".into()], vec![0.9], vec![]);
-    let deps = make_deps(&scn, Policy::default());
-
-    let analysis = analyze(
-        AnalysisRequest {
-            url: scn.source.url.clone(),
-            channel: ChannelCtx { id: "c".into() },
-        },
-        &deps,
-    )
-    .await
-    .unwrap();
-
-    let cached = deps
-        .cache
-        .get(&linkbot_core::normalize_url(&scn.source.url).unwrap())
-        .unwrap();
-    assert!(cached.is_some(), "analysis should be cached");
-    let cached = cached.unwrap();
-    assert_eq!(cached.bucket, analysis.meta.bucket);
 }
 
 #[tokio::test]

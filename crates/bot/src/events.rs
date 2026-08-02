@@ -1,7 +1,6 @@
 //! Serenity event handling: message pipeline (§4.1), slash commands (§4.2),
 //! gates, and the analysis trigger on a tokio task.
 
-use linkbot_core::cache::Cache;
 use linkbot_core::clock::Clock;
 use linkbot_core::config::Config;
 use linkbot_core::pipeline::{self, ChannelCtx};
@@ -22,7 +21,6 @@ use crate::ui;
 /// Everything the event handler needs, shared across the bot.
 pub struct SharedDeps {
     pub config: Arc<Config>,
-    pub cache: Arc<Cache>,
     pub clock: Clock,
     /// In-flight analyses per channel (cooldown bookkeeping).
     pub cooldowns: tokio::sync::Mutex<std::collections::HashMap<String, i64>>,
@@ -139,16 +137,10 @@ impl EventHandler for Handler {
             cd.insert(channel_id.clone(), now);
         }
 
-        // Dedupe via cache (same URL within TTL → re-post cached analysis).
+        // Normalize the URL once — every post gets a FRESH analysis
+        // (no caching by design: this is a personal bot).
         let normalized = linkbot_core::normalize_url(&url);
         let cache_key = normalized.clone().unwrap_or_else(|| url.clone());
-        if let Ok(Some(cached)) = deps.cache.get(&cache_key) {
-            if let Ok(analysis) = serde_json::from_str::<pipeline::Analysis>(&cached.analysis_json)
-            {
-                let _ = ui::post_cached(&ctx, &msg, &analysis, &cached.window_used).await;
-                return;
-            }
-        }
 
         // Trigger analysis on a task — never block the gateway loop.
         let ctx2 = ctx.clone();
@@ -320,7 +312,6 @@ impl SharedDeps {
             fetcher,
             searcher,
             llm,
-            cache: self.cache.clone(),
             clock: self.clock.clone(),
             config: self.config.clone(),
         }

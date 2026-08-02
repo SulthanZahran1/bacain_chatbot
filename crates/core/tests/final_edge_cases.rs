@@ -1,9 +1,8 @@
-//! Final batch: Analysis serde (the cache payload), file-backed cache,
-//! domain-speed env override, and pipeline-surface edge cases.
+//! Final batch: Analysis serde, domain-speed env override, and
+//! pipeline-surface edge cases.
 
 use std::sync::Arc;
 
-use linkbot_core::cache::Cache;
 use linkbot_core::clock::{Clock, FakeClock};
 use linkbot_core::config::Config;
 use linkbot_core::error::PipelineError;
@@ -14,7 +13,7 @@ use linkbot_core::scenario::{Scenario, ScenarioArticle, ScenarioExpectation, Sce
 use linkbot_core::synthesizer::{Citation, Synthesis};
 
 // ---------------------------------------------------------------------------
-// Analysis serde — the cache payload contract
+// Analysis serde contract
 // ---------------------------------------------------------------------------
 
 fn sample_analysis() -> Analysis {
@@ -93,47 +92,6 @@ fn synthesis_into_analysis_fields() {
     };
     assert_eq!(s.summary, "s1");
     assert_eq!(s.citations[0].context, "ctx");
-}
-
-// ---------------------------------------------------------------------------
-// File-backed cache
-// ---------------------------------------------------------------------------
-
-#[test]
-fn cache_file_open_write_reopen_read() {
-    let dir = std::env::temp_dir().join("linkbot_cache_file_test");
-    let _ = std::fs::remove_dir_all(&dir);
-    std::fs::create_dir_all(&dir).unwrap();
-    let path = dir.join("bot.db");
-    let path_str = path.to_str().unwrap();
-
-    let c = Cache::open(std::path::Path::new(path_str)).unwrap();
-    c.put("https://persist.example/1", "ch", r#"{"v":1}"#, "30d", "default", 7)
-        .unwrap();
-    drop(c);
-
-    let c2 = Cache::open(std::path::Path::new(path_str)).unwrap();
-    let got = c2.get("https://persist.example/1").unwrap().unwrap();
-    assert!(got.analysis_json.contains("\"v\":1"), "persisted across reopen");
-    assert_eq!(got.created_at, 7);
-    drop(c2);
-
-    let _ = std::fs::remove_dir_all(&dir);
-}
-
-#[test]
-fn cache_file_missing_dir_errors_gracefully() {
-    // Cache::open on an unwritable path should return Err, not panic.
-    let r = Cache::open(std::path::Path::new("/nonexistent-dir/deep/bot.db"));
-    assert!(r.is_err() || r.is_ok(), "no panic either way");
-}
-
-#[test]
-fn cache_in_memory_shared_across_clones() {
-    let c = Cache::in_memory().unwrap();
-    let c2 = c.clone();
-    c2.set_config("k", "v").unwrap();
-    assert_eq!(c.get_config("k").unwrap(), Some("v".into()));
 }
 
 // ---------------------------------------------------------------------------
@@ -241,7 +199,6 @@ fn run_mini(scn: &Scenario, policy: Policy) -> (Analysis, Arc<AiAwareMockFetcher
         scn.source.ground_truth_angles,
         &scn.corpus,
     ));
-    let cache = Arc::new(Cache::in_memory().unwrap());
     let clock: Clock = Arc::new(FakeClock::new(1_785_484_800));
     let config = Config {
         policy,
@@ -251,7 +208,6 @@ fn run_mini(scn: &Scenario, policy: Policy) -> (Analysis, Arc<AiAwareMockFetcher
         fetcher: fetcher.clone(),
         searcher,
         llm,
-        cache,
         clock,
         config: Arc::new(config),
     };

@@ -5,7 +5,6 @@
 //! network or a Discord connection (providers are trait-based and mocked in
 //! tests, the clock is injectable).
 
-pub mod cache;
 pub mod citations;
 pub mod classifier;
 pub mod clock;
@@ -57,13 +56,6 @@ pub fn normalize_url(raw: &str) -> Option<String> {
     Some(out)
 }
 
-pub fn sha256_hex(s: &str) -> String {
-    use sha2::{Digest, Sha256};
-    let mut h = Sha256::new();
-    h.update(s.as_bytes());
-    h.finalize().iter().map(|b| format!("{b:02x}")).collect()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -83,11 +75,5 @@ mod tests {
     #[test]
     fn normalize_rejects_garbage() {
         assert!(normalize_url("not a url").is_none());
-    }
-
-    #[test]
-    fn sha256_is_hex_and_stable() {
-        assert_eq!(sha256_hex("x"), sha256_hex("x"));
-        assert_eq!(sha256_hex("x").len(), 64);
     }
 }

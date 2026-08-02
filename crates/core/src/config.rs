@@ -19,7 +19,6 @@ pub struct Config {
     pub analyze_channels: Vec<String>, // empty = ALLOW_ALL
     pub allow_all_channels: bool,
     pub cooldown_secs: i64,
-    pub cache_ttl_hours: i64,
 
     // --- loop policy (env wins over optimized_policy.json) ---
     pub policy: Policy,
@@ -50,7 +49,6 @@ impl Default for Config {
             analyze_channels: vec![],
             allow_all_channels: true,
             cooldown_secs: 60,
-            cache_ttl_hours: 24,
             policy: Policy::default(),
             corpus_token_budget: 60_000,
             reply_mode: ReplyMode::Thread,
@@ -89,7 +87,6 @@ impl Config {
             allow_all_channels: allow_all,
             analyze_channels: channels,
             cooldown_secs: parse_i64("COOLDOWN_SECS", 60),
-            cache_ttl_hours: parse_i64("CACHE_TTL_HOURS", 24),
             policy: Policy::load_with_env_override(Some(&policy_path)),
             corpus_token_budget: parse_usize("CORPUS_TOKEN_BUDGET", 60_000),
             reply_mode: match get("REPLY_MODE").as_str() {

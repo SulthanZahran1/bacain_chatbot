@@ -135,24 +135,6 @@ pub async fn post_analysis(
     Ok(())
 }
 
-/// Re-post a cached analysis with a "cached from" footer.
-pub async fn post_cached(
-    ctx: &Context,
-    original: &Message,
-    analysis: &Analysis,
-    window_used: &str,
-) -> serenity::Result<()> {
-    let _ = post_analysis(ctx, original, analysis).await;
-    let _ = original
-        .channel_id
-        .send_message(
-            &ctx.http,
-            CreateMessage::new().content(format!("⏱ cached analysis (window used: {window_used})")),
-        )
-        .await;
-    Ok(())
-}
-
 /// Post a user-facing error (§10 delivery rules).
 pub async fn post_error(
     ctx: &Context,

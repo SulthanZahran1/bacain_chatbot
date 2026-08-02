@@ -3,7 +3,6 @@
 use std::sync::Arc;
 
 use linkbot_bot::{Handler, SharedDeps};
-use linkbot_core::cache::Cache;
 use linkbot_core::clock;
 use linkbot_core::config::Config;
 use serenity::client::Client;
@@ -30,17 +29,8 @@ async fn main() {
         std::process::exit(1);
     }
 
-    let cache = Arc::new(match Cache::open(std::path::Path::new("data/linkbot.db")) {
-        Ok(c) => c,
-        Err(e) => {
-            eprintln!("cache open failed: {e}");
-            std::process::exit(1);
-        }
-    });
-
     let shared = Arc::new(SharedDeps {
         config: config.clone(),
-        cache,
         clock: clock::system(),
         cooldowns: tokio::sync::Mutex::new(std::collections::HashMap::new()),
         recent: tokio::sync::Mutex::new(Vec::new()),

@@ -8,7 +8,7 @@ citation mechanically verified against the actual fetched corpus**.
 Built to spec (`goal.md`): Rust workspace, TinyFish Fetch (the **only**
 URL-retrieval path — the bot never fetches raw URLs itself, SSRF-safe),
 TinyFish Search fallback + Exa search, any OpenAI-compatible LLM
-(default: Ollama Cloud `deepseek-v4-flash:0731`), bundled SQLite.
+(default: Ollama Cloud `deepseek-v4-flash:0731`).
 
 ## Architecture
 
@@ -35,7 +35,6 @@ crates/
    citations; JSON repair retry once.
 7. **Validate citations**: pool = {source} ∪ {successfully fetched hits};
    anything else is **pruned** (hallucination-injection tested).
-8. **Cache** to SQLite (dedupe TTL, per-channel cooldown, `/config` state).
 
 ### Search-loop policy (env wins > `optimized_policy.json`)
 
@@ -61,7 +60,7 @@ URL. Slash commands: `/analyze <url>` (force), `/status`, `/config`, `/ping`.
 ## Verification (DoD §15)
 
 ```bash
-cargo test                # 155 tests: unit + integration + 101-scenario suite
+cargo test                # 240+ tests: unit + integration + 101-scenario suite
 cargo clippy --all-targets -- -D warnings
 cargo fmt --check
 cargo build --release

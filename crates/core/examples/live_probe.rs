@@ -7,7 +7,6 @@
 
 use std::sync::Arc;
 
-use linkbot_core::cache::Cache;
 use linkbot_core::clock;
 use linkbot_core::config::Config;
 use linkbot_core::pipeline::{analyze, AnalysisRequest, ChannelCtx, Deps};
@@ -18,7 +17,6 @@ async fn main() {
     let channel = std::env::args().nth(2).unwrap_or_else(|| "probe".to_string());
 
     let config = Arc::new(Config::from_env().expect("config from env"));
-    let cache = Arc::new(Cache::open(std::path::Path::new("data/probe.db")).expect("cache"));
     let deps = Deps {
         fetcher: Arc::new(linkbot_core::fetcher::TinyFishFetcher::new(
             config.tinyfish_api_key.clone(),
@@ -31,7 +29,6 @@ async fn main() {
             config.llm_api_key.clone(),
             config.llm_model.clone(),
         )),
-        cache,
         clock: clock::system(),
         config: config.clone(),
     };

@@ -1,15 +1,13 @@
-//! Cache, clock, policy, and config tests — the stateful/serialization layer
-//! the pipeline depends on. SQLite via bundled rusqlite (in-memory).
+//! Clock, policy, and config tests — the stateful/serialization layer
+//! the pipeline depends on.
 //!
 //! Env-dependent tests set ALL policy vars explicitly to stay deterministic
 //! under parallel test threads (env is process-global).
 
 use std::sync::Arc;
 
-use linkbot_core::cache::Cache;
 use linkbot_core::clock::{Clock, FakeClock, Now, SystemClock};
 use linkbot_core::config::{Config, ReplyMode};
-use linkbot_core::error::PipelineError;
 use linkbot_core::optimizer_policy::Policy;
 
 /// Serializes ALL env-mutating tests in this binary. Env is process-global;
@@ -22,107 +20,6 @@ static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 /// PoisonError into every later test.
 fn env_guard() -> std::sync::MutexGuard<'static, ()> {
     ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner())
-}
-
-// ---------------------------------------------------------------------------
-// Cache (§5 Stage 8)
-// ---------------------------------------------------------------------------
-
-#[test]
-fn cache_roundtrip_analysis() {
-    let c = Cache::in_memory().unwrap();
-    let now = 1_785_484_800;
-    c.put(
-        "https://example.com/a",
-        "ch1",
-        r#"{"summary":"s","meta":{"window_used":"30d","bucket":"default"}}"#,
-        "30d",
-        "default",
-        now,
-    )
-    .unwrap();
-    let got = c.get("https://example.com/a").unwrap().expect("cached");
-    assert!(got.analysis_json.contains("\"summary\":\"s\""));
-    assert_eq!(got.window_used, "30d");
-    assert_eq!(got.bucket, "default");
-    assert_eq!(got.created_at, now);
-}
-
-#[test]
-fn cache_get_unknown_returns_none() {
-    let c = Cache::in_memory().unwrap();
-    assert!(c.get("https://nope.example/x").unwrap().is_none());
-}
-
-#[test]
-fn cache_cooldown_roundtrip() {
-    let c = Cache::in_memory().unwrap();
-    assert_eq!(c.last_analysis_at("ch9").unwrap(), None);
-    c.set_last_analysis_at("ch9", 42).unwrap();
-    assert_eq!(c.last_analysis_at("ch9").unwrap(), Some(42));
-}
-
-#[test]
-fn cache_config_persistence() {
-    let c = Cache::in_memory().unwrap();
-    assert_eq!(c.get_config("reply_mode").unwrap(), None);
-    c.set_config("reply_mode", "split").unwrap();
-    assert_eq!(c.get_config("reply_mode").unwrap(), Some("split".into()));
-    let all = c.all_config().unwrap();
-    assert!(all.contains(&("reply_mode".into(), "split".into())));
-}
-
-#[test]
-fn cache_recent_orders_by_recency() {
-    let c = Cache::in_memory().unwrap();
-    c.put("https://a.example/1", "ch", "{}", "30d", "default", 100)
-        .unwrap();
-    c.put("https://b.example/2", "ch", "{}", "30d", "default", 200)
-        .unwrap();
-    let recent = c.recent(10).unwrap();
-    assert_eq!(recent.len(), 2);
-    assert_eq!(recent[0].url, "https://b.example/2", "newest first");
-}
-
-#[test]
-fn cache_recent_limit() {
-    let c = Cache::in_memory().unwrap();
-    for i in 0..5 {
-        c.put(&format!("https://x.example/{i}"), "ch", "{}", "30d", "default", i)
-            .unwrap();
-    }
-    assert_eq!(c.recent(2).unwrap().len(), 2);
-}
-
-#[test]
-fn cache_clones_share_connection() {
-    let c = Cache::in_memory().unwrap();
-    let c2 = c.clone();
-    c.put("https://s.example/1", "ch", "{}", "30d", "default", 1)
-        .unwrap();
-    assert!(
-        c2.get("https://s.example/1").unwrap().is_some(),
-        "clone sees data"
-    );
-}
-
-#[test]
-fn cache_put_overwrites_same_url() {
-    let c = Cache::in_memory().unwrap();
-    c.put("https://s.example/1", "ch", r#"{"v":1}"#, "30d", "default", 1)
-        .unwrap();
-    c.put("https://s.example/1", "ch", r#"{"v":2}"#, "7d", "fast", 2)
-        .unwrap();
-    let got = c.get("https://s.example/1").unwrap().unwrap();
-    assert!(got.analysis_json.contains("\"v\":2"), "overwritten");
-    assert_eq!(got.window_used, "7d");
-    assert_eq!(got.bucket, "fast");
-}
-
-#[test]
-fn cache_error_variant_roundtrip() {
-    let e = PipelineError::CacheError("boom".into());
-    assert!(e.to_string().contains("boom"));
 }
 
 // ---------------------------------------------------------------------------
@@ -309,7 +206,6 @@ fn policy_bad_file_falls_back_to_default() {
 fn config_defaults() {
     let c = Config::default();
     assert_eq!(c.cooldown_secs, 60);
-    assert_eq!(c.cache_ttl_hours, 24);
     assert!(c.allow_all_channels);
     assert_eq!(c.reply_mode, ReplyMode::Thread);
     assert_eq!(c.llm_api_base, "https://ollama.com/v1");
@@ -352,7 +248,6 @@ fn config_from_env_full() {
     std::env::set_var("LLM_MODEL", "deepseek-v4-flash:0731");
     std::env::set_var("ANALYZE_CHANNELS", "111, 222 ,333");
     std::env::set_var("COOLDOWN_SECS", "120");
-    std::env::set_var("CACHE_TTL_HOURS", "48");
     std::env::set_var("CORPUS_TOKEN_BUDGET", "12345");
     std::env::set_var("REPLY_MODE", "split");
     let c = Config::from_env().unwrap();
@@ -363,7 +258,6 @@ fn config_from_env_full() {
         vec!["111".to_string(), "222".to_string(), "333".to_string()]
     );
     assert_eq!(c.cooldown_secs, 120);
-    assert_eq!(c.cache_ttl_hours, 48);
     assert_eq!(c.corpus_token_budget, 12345);
     assert_eq!(c.reply_mode, ReplyMode::Split);
     for k in [
@@ -374,7 +268,6 @@ fn config_from_env_full() {
         "LLM_MODEL",
         "ANALYZE_CHANNELS",
         "COOLDOWN_SECS",
-        "CACHE_TTL_HOURS",
         "CORPUS_TOKEN_BUDGET",
         "REPLY_MODE",
     ] {
@@ -400,12 +293,9 @@ fn config_from_env_garbage_numbers_keep_defaults() {
     // Guard against concurrent policy tests setting these env vars.
     clear_all_policy_env();
     std::env::set_var("COOLDOWN_SECS", "not-a-number");
-    std::env::set_var("CACHE_TTL_HOURS", "abc");
     let c = Config::from_env().unwrap();
     assert_eq!(c.cooldown_secs, 60, "unparseable → default");
-    assert_eq!(c.cache_ttl_hours, 24, "unparseable → default");
     std::env::remove_var("COOLDOWN_SECS");
-    std::env::remove_var("CACHE_TTL_HOURS");
 }
 
 #[test]

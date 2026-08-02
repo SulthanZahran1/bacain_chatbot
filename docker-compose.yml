@@ -5,11 +5,7 @@ services:
     env_file: .env
     environment:
       - OPTIMIZED_POLICY_JSON=/app/optimized_policy.json
-    volumes:
-      - linkbot-data:/app/data
     read_only: true
     tmpfs:
       - /tmp
 
-volumes:
-  linkbot-data:

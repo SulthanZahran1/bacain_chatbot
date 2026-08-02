@@ -4,7 +4,6 @@
 
 use std::sync::Arc;
 
-use linkbot_core::cache::Cache;
 use linkbot_core::clock::{Clock, FakeClock};
 use linkbot_core::config::Config;
 use linkbot_core::mock_providers::{AiAwareMockFetcher, MockSearchProvider, ScriptedLlm};
@@ -73,7 +72,6 @@ fn make_deps(scn: &Scenario, policy: Policy) -> (Deps, Arc<AiAwareMockFetcher>) 
         scn.source.ground_truth_angles,
         &scn.corpus,
     ));
-    let cache = Arc::new(Cache::in_memory().unwrap());
     let clock: Clock = Arc::new(FakeClock::new(1_785_484_800));
     let config = Config {
         policy,
@@ -83,7 +81,6 @@ fn make_deps(scn: &Scenario, policy: Policy) -> (Deps, Arc<AiAwareMockFetcher>) 
         fetcher: fetcher.clone(),
         searcher,
         llm,
-        cache,
         clock,
         config: Arc::new(config),
     };
@@ -254,32 +251,6 @@ async fn metadata_reports_latency_and_model() {
     assert!(a.meta.latency_ms < 60_000);
     assert!(!a.meta.llm_model.is_empty());
     assert!(a.meta.corpus_size > 0);
-}
-
-#[tokio::test]
-async fn analysis_is_cached_after_run() {
-    let scn = scenario(false, 6, &["mechanism"], vec![0.95], vec![], None);
-    let (deps, _) = {
-        let (d, _) = make_deps(&scn, Policy::default());
-        (d, ())
-    };
-    let a = analyze(
-        AnalysisRequest {
-            url: scn.source.url.clone(),
-            channel: ChannelCtx { id: "c".into() },
-        },
-        &deps,
-    )
-    .await
-    .unwrap();
-    let cached = deps
-        .cache
-        .get(&linkbot_core::normalize_url(&scn.source.url).unwrap())
-        .unwrap()
-        .expect("cached");
-    let roundtrip: linkbot_core::pipeline::Analysis =
-        serde_json::from_str(&cached.analysis_json).unwrap();
-    assert_eq!(roundtrip.meta.window_used, a.meta.window_used);
 }
 
 #[tokio::test]

@@ -127,7 +127,6 @@ pub fn run_scenario(scenario: &Scenario, policy: Policy) -> ScenarioResult {
         scenario.source.ground_truth_angles,
         &scenario.corpus,
     ));
-    let cache = Arc::new(crate::cache::Cache::in_memory().expect("mem cache"));
     let clock: crate::clock::Clock = Arc::new(FakeClock::new(1_785_484_800));
 
     let config = Config {
@@ -138,7 +137,6 @@ pub fn run_scenario(scenario: &Scenario, policy: Policy) -> ScenarioResult {
         fetcher: fetcher.clone(),
         searcher: searcher.clone(),
         llm,
-        cache,
         clock,
         config: Arc::new(config),
     };
