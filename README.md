@@ -1,5 +1,8 @@
 # bacain_chatbot — Discord Link-Analysis Bot
 
+[![CI](https://github.com/SulthanZahran1/bacain_chatbot/actions/workflows/ci.yml/badge.svg)](https://github.com/SulthanZahran1/bacain_chatbot/actions/workflows/ci.yml)
+[![CD](https://github.com/SulthanZahran1/bacain_chatbot/actions/workflows/cd.yml/badge.svg)](https://github.com/SulthanZahran1/bacain_chatbot/actions/workflows/cd.yml)
+
 When a user posts a URL in a configured channel, the bot fetches the article,
 classifies it, runs a **coverage-feedback search loop** across fresh sources,
 synthesizes a multi-angle analysis, and replies in a thread — with **every
