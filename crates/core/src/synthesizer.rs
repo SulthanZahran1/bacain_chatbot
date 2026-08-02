@@ -38,8 +38,8 @@ Produce a JSON object with exactly this schema:
 {
   "title":          "<3-4 word plain title: what the work is, no fluff>",
   "summary":        "<2–4 sentences, PLAIN language>",
-  "deep_analysis":  "<3–4 paragraphs: context, mechanism/claims, implications, tensions>",
-  "critique":       "<1–2 paragraphs: substantive weaknesses only>",
+  "deep_analysis":  "<4-6 scannable bullet points — NO paragraphs>",
+  "critique":       "<1-3 short bullets or one 2-sentence verdict>",
   "citations":      [{"url": "...", "context": "<one line: what claim it supports>"}]
 }
 
@@ -50,15 +50,18 @@ SECTION GUIDANCE (hard constraints):
   understandable by a technical reader who does NOT follow this domain.
   No jargon, no model names, no metrics unless essential. The summary must
   be SHORTER and LESS technical than deep_analysis.
-- DEEP_ANALYSIS: The longest, most detailed section. Domain-level detail,
-  mechanisms, evidence, tensions. This is where technical depth belongs.
-- CRITIQUE: Substantive weaknesses only — unsubstantiated claims, missing
-  evidence, internal contradictions, over-generalization, flawed comparisons,
-  conflicts with the cited sources, or missing context that changes the
-  interpretation. Do NOT critique genre conventions: a technical report or
-  preprint not being peer-reviewed is not a flaw; an announcement not
-  containing experiments is not a flaw; a paper being technical is not a flaw.
-  Only criticize what the work itself claims to do and fails at.
+- DEEP_ANALYSIS: 4-6 bullet points, each starting with "- ". Each bullet is
+  ONE scannable key point (mechanism, key evidence/numbers, why it matters,
+  tensions). MAX 2 lines per bullet. NO paragraphs, NO prose, NO fluff.
+  The reader should grasp the whole piece in 30 seconds of skimming.
+  If the work has an acronym, explain it once in the first bullet.
+- CRITIQUE: 1-3 short bullets OR one 2-sentence verdict. Substantive
+  weaknesses only — unsubstantiated claims, missing evidence, internal
+  contradictions, over-generalization, flawed comparisons, conflicts with
+  the cited sources. If nothing major: one bullet saying the claims hold
+  up. Do NOT critique genre conventions: a technical report or preprint
+  not being peer-reviewed is not a flaw; an announcement not containing
+  experiments is not a flaw; a paper being technical is not a flaw.
 
 CITATION RULES (hard constraints):
 - You may ONLY cite URLs from the provided corpus. Never invent, guess, or reconstruct URLs.
