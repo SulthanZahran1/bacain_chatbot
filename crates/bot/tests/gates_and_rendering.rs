@@ -99,7 +99,11 @@ fn split_chunks_respects_limit_exactly() {
     let text = format!("{}\n\n{}", "a".repeat(1200), "b".repeat(1200));
     let chunks = split_chunks(&text, MAX_MSG_CHARS);
     for c in &chunks {
-        assert!(c.chars().count() <= MAX_MSG_CHARS, "chunk too long: {}", c.chars().count());
+        assert!(
+            c.chars().count() <= MAX_MSG_CHARS,
+            "chunk too long: {}",
+            c.chars().count()
+        );
     }
     assert!(chunks.len() >= 2);
 }

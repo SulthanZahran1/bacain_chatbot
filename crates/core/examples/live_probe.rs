@@ -13,8 +13,12 @@ use linkbot_core::pipeline::{analyze, AnalysisRequest, ChannelCtx, Deps};
 
 #[tokio::main]
 async fn main() {
-    let url = std::env::args().nth(1).expect("usage: live_probe <url> [channel_id]");
-    let channel = std::env::args().nth(2).unwrap_or_else(|| "probe".to_string());
+    let url = std::env::args()
+        .nth(1)
+        .expect("usage: live_probe <url> [channel_id]");
+    let channel = std::env::args()
+        .nth(2)
+        .unwrap_or_else(|| "probe".to_string());
 
     let config = Arc::new(Config::from_env().expect("config from env"));
     let deps = Deps {
@@ -42,7 +46,10 @@ async fn main() {
         .with_timer(tracing_subscriber::fmt::time::uptime())
         .try_init();
     let analysis = match analyze(
-        AnalysisRequest { url: url.clone(), channel: ChannelCtx { id: channel } },
+        AnalysisRequest {
+            url: url.clone(),
+            channel: ChannelCtx { id: channel },
+        },
         &deps,
     )
     .await
@@ -65,11 +72,20 @@ async fn main() {
     println!("stop_reason: {}", analysis.meta.stop_reason);
     println!("citations_rejected: {}", analysis.meta.citations_rejected);
     println!("llm_model: {}", analysis.meta.llm_model);
-    println!("summary (first 160): {}", analysis.summary.chars().take(160).collect::<String>());
+    println!(
+        "summary (first 160): {}",
+        analysis.summary.chars().take(160).collect::<String>()
+    );
     println!("--- CITATIONS ---");
     for (i, c) in analysis.citations.iter().enumerate() {
         println!("{i}: {}", c.url);
     }
-    println!("--- DEEP (first 160): {}", analysis.deep_analysis.chars().take(160).collect::<String>());
-    println!("--- CRITIQUE (first 160): {}", analysis.critique.chars().take(160).collect::<String>());
+    println!(
+        "--- DEEP (first 160): {}",
+        analysis.deep_analysis.chars().take(160).collect::<String>()
+    );
+    println!(
+        "--- CRITIQUE (first 160): {}",
+        analysis.critique.chars().take(160).collect::<String>()
+    );
 }

@@ -6,10 +6,14 @@ use std::sync::Arc;
 use linkbot_core::clock::{Clock, FakeClock};
 use linkbot_core::config::Config;
 use linkbot_core::error::PipelineError;
-use linkbot_core::mock_providers::{AiAwareMockFetcher, MockSearchProvider, ScriptedLlm, source_article};
+use linkbot_core::mock_providers::{
+    source_article, AiAwareMockFetcher, MockSearchProvider, ScriptedLlm,
+};
 use linkbot_core::optimizer_policy::Policy;
 use linkbot_core::pipeline::{analyze, Analysis, AnalysisMeta, AnalysisRequest, ChannelCtx, Deps};
-use linkbot_core::scenario::{Scenario, ScenarioArticle, ScenarioExpectation, ScenarioOverrides, ScenarioSource};
+use linkbot_core::scenario::{
+    Scenario, ScenarioArticle, ScenarioExpectation, ScenarioOverrides, ScenarioSource,
+};
 use linkbot_core::synthesizer::{Citation, Synthesis};
 
 /// Serializes env-mutating tests in this binary (env is process-global).
@@ -96,7 +100,10 @@ fn synthesis_into_analysis_fields() {
         summary: "s1".into(),
         deep_analysis: "d1".into(),
         critique: "c1".into(),
-        citations: vec![Citation { url: "https://x/1".into(), context: "ctx".into() }],
+        citations: vec![Citation {
+            url: "https://x/1".into(),
+            context: "ctx".into(),
+        }],
     };
     assert_eq!(s.summary, "s1");
     assert_eq!(s.citations[0].context, "ctx");
@@ -114,7 +121,11 @@ fn config_domain_speed_env_override_applies() {
         r#"{"buckets":{"fast":{"window_minutes":10080,"domains":["mycorp.example"]}}}"#,
     );
     let c = Config::from_env().unwrap();
-    let w = linkbot_core::domain_speed::resolve_window(&c.domain_speed, "https://mycorp.example/x", false);
+    let w = linkbot_core::domain_speed::resolve_window(
+        &c.domain_speed,
+        "https://mycorp.example/x",
+        false,
+    );
     assert_eq!(w.bucket, "fast");
     assert_eq!(w.recency_minutes, Some(10_080));
     std::env::remove_var("DOMAIN_SPEED_JSON");
@@ -125,7 +136,8 @@ fn config_empty_domain_speed_env_ignored() {
     let _g = env_guard();
     std::env::set_var("DOMAIN_SPEED_JSON", "   ");
     let c = Config::from_env().unwrap();
-    let w = linkbot_core::domain_speed::resolve_window(&c.domain_speed, "https://reuters.com/x", false);
+    let w =
+        linkbot_core::domain_speed::resolve_window(&c.domain_speed, "https://reuters.com/x", false);
     assert_eq!(w.bucket, "fast", "default table still applies");
     std::env::remove_var("DOMAIN_SPEED_JSON");
 }
@@ -190,7 +202,10 @@ fn mini_scenario(is_ai: bool) -> Scenario {
                 snippet: "s".into(),
             })
             .collect(),
-        expected: ScenarioExpectation { min_angles_covered: 1, max_wasted_fetches: 2 },
+        expected: ScenarioExpectation {
+            min_angles_covered: 1,
+            max_wasted_fetches: 2,
+        },
         overrides: ScenarioOverrides {
             seed_queries: vec!["mechanism".into()],
             ..Default::default()
@@ -223,7 +238,10 @@ fn run_mini(scn: &Scenario, policy: Policy) -> (Analysis, Arc<AiAwareMockFetcher
     };
     let rt = tokio::runtime::Runtime::new().unwrap();
     let a = rt.block_on(analyze(
-        AnalysisRequest { url: scn.source.url.clone(), channel: ChannelCtx { id: "t".into() } },
+        AnalysisRequest {
+            url: scn.source.url.clone(),
+            channel: ChannelCtx { id: "t".into() },
+        },
         &deps,
     ));
     (a.expect("analysis"), fetcher)
@@ -314,5 +332,8 @@ fn citation_pool_normalizes_scheme_variants() {
 fn citation_pool_rejects_fragments_only() {
     let mut p = linkbot_core::citations::CitationPool::new();
     assert!(!p.insert("#fragment"), "bare fragment is not a URL");
-    assert!(p.insert("https://example.com/page#frag"), "fragment on URL ok");
+    assert!(
+        p.insert("https://example.com/page#frag"),
+        "fragment on URL ok"
+    );
 }

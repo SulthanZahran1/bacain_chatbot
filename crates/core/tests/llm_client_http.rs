@@ -63,7 +63,11 @@ async fn chat_json_sends_auth_and_json_body() {
     let c = client(port);
     let _ = c.chat_json("sys", "usr").await.unwrap();
     let head = req.lock().unwrap().clone();
-    assert!(head.to_lowercase().contains("authorization: bearer test-key"), "{head}");
+    assert!(
+        head.to_lowercase()
+            .contains("authorization: bearer test-key"),
+        "{head}"
+    );
     assert!(head.contains("content-type: application/json"), "{head}");
 }
 
@@ -131,7 +135,9 @@ async fn synthesize_repair_retry_on_bad_json() {
                 let body = if i == 0 {
                     ok_body(r#""not valid json at all""#)
                 } else {
-                    ok_body(r#""{\"summary\":\"ok\",\"deep_analysis\":\"d\",\"critique\":\"c\",\"citations\":[]}""#)
+                    ok_body(
+                        r#""{\"summary\":\"ok\",\"deep_analysis\":\"d\",\"critique\":\"c\",\"citations\":[]}""#,
+                    )
                 };
                 let resp = format!(
                     "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
@@ -152,7 +158,11 @@ async fn synthesize_repair_retry_on_bad_json() {
     };
     let s = c.synthesize(&src, &[]).await.unwrap();
     assert_eq!(s.summary, "ok");
-    assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 2, "retried once");
+    assert_eq!(
+        calls.load(std::sync::atomic::Ordering::SeqCst),
+        2,
+        "retried once"
+    );
 }
 
 #[tokio::test]
@@ -198,7 +208,9 @@ async fn synthesize_success_no_retry() {
             let mut buf = [0u8; 4096];
             let _ = stream.read(&mut buf);
             c2.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-            let body = ok_body(r#""{\"summary\":\"s\",\"deep_analysis\":\"d\",\"critique\":\"c\",\"citations\":[{\"url\":\"https://x/1\",\"context\":\"ctx\"}]}""#);
+            let body = ok_body(
+                r#""{\"summary\":\"s\",\"deep_analysis\":\"d\",\"critique\":\"c\",\"citations\":[{\"url\":\"https://x/1\",\"context\":\"ctx\"}]}""#,
+            );
             let resp = format!(
                 "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
                 body.len()
@@ -217,7 +229,11 @@ async fn synthesize_success_no_retry() {
     };
     let s = c.synthesize(&src, &[]).await.unwrap();
     assert_eq!(s.citations.len(), 1);
-    assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1, "no retry on success");
+    assert_eq!(
+        calls.load(std::sync::atomic::Ordering::SeqCst),
+        1,
+        "no retry on success"
+    );
 }
 
 #[tokio::test]
@@ -255,5 +271,9 @@ async fn synthesize_tolerates_duplicate_json_keys() {
     };
     let s = c.synthesize(&src, &[]).await.unwrap();
     assert_eq!(s.deep_analysis, "second", "last-wins on duplicate keys");
-    assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1, "no retry needed");
+    assert_eq!(
+        calls.load(std::sync::atomic::Ordering::SeqCst),
+        1,
+        "no retry needed"
+    );
 }

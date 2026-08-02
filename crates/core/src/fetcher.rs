@@ -176,10 +176,19 @@ mod tests {
             map_error_code_public("page_not_found"),
             PipelineError::PageNotFound
         );
-        assert_eq!(map_error_code_public("bot_blocked"), PipelineError::BotBlocked);
+        assert_eq!(
+            map_error_code_public("bot_blocked"),
+            PipelineError::BotBlocked
+        );
         assert_eq!(map_error_code_public("timeout"), PipelineError::Timeout);
-        assert_eq!(map_error_code_public("proxy_error"), PipelineError::ProxyError);
-        assert_eq!(map_error_code_public("invalid_url"), PipelineError::InvalidUrl);
+        assert_eq!(
+            map_error_code_public("proxy_error"),
+            PipelineError::ProxyError
+        );
+        assert_eq!(
+            map_error_code_public("invalid_url"),
+            PipelineError::InvalidUrl
+        );
         assert_eq!(
             map_error_code_public("target_http_error"),
             PipelineError::TargetHttpError
@@ -188,7 +197,10 @@ mod tests {
             map_error_code_public("target_unreachable"),
             PipelineError::TargetUnreachable
         );
-        assert_eq!(map_error_code_public("empty_content"), PipelineError::EmptyContent);
+        assert_eq!(
+            map_error_code_public("empty_content"),
+            PipelineError::EmptyContent
+        );
         assert!(matches!(
             map_error_code_public("weird"),
             PipelineError::Internal(_)

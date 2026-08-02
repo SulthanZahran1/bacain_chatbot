@@ -41,6 +41,9 @@ fn main() {
 
     let winner = &results[0];
     write_winner(winner, OUTPUT).expect("write optimized_policy.json");
-    println!("winner: {:?} (score {:.1}) → {OUTPUT}", winner.policy, winner.score);
+    println!(
+        "winner: {:?} (score {:.1}) → {OUTPUT}",
+        winner.policy, winner.score
+    );
     println!("verify with: cargo test scenario_suite");
 }

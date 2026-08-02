@@ -65,14 +65,7 @@ fn fake_clock_is_send_sync() {
 // Policy (§5 Stage 9 / §9)
 // ---------------------------------------------------------------------------
 
-fn set_all_policy_env(
-    ik: usize,
-    ek: usize,
-    ct: f64,
-    mna: usize,
-    mr: usize,
-    sb: usize,
-) {
+fn set_all_policy_env(ik: usize, ek: usize, ct: f64, mna: usize, mr: usize, sb: usize) {
     std::env::set_var("INITIAL_K", ik.to_string());
     std::env::set_var("EXPANSION_K", ek.to_string());
     std::env::set_var("COVERAGE_TARGET", ct.to_string());

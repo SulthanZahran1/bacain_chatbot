@@ -12,10 +12,10 @@ use linkbot_core::mock_providers::{
     AiAwareMockFetcher, MockFetcher, MockSearchProvider, ScriptedLlm,
 };
 use linkbot_core::optimizer_policy::Policy;
-use linkbot_core::pipeline::{Deps, analyze, AnalysisRequest, ChannelCtx};
+use linkbot_core::pipeline::{analyze, AnalysisRequest, ChannelCtx, Deps};
 use linkbot_core::scenario::{
-    Scenario, ScenarioArticle, ScenarioExpectation, ScenarioOverrides, ScenarioSource,
-    run_scenario, run_suite,
+    run_scenario, run_suite, Scenario, ScenarioArticle, ScenarioExpectation, ScenarioOverrides,
+    ScenarioSource,
 };
 use linkbot_core::searcher::{FreshnessWindow, SearchProvider};
 use linkbot_core::synthesizer::Llm;
@@ -41,7 +41,10 @@ fn base_scenario() -> Scenario {
                 snippet: "s".into(),
             })
             .collect(),
-        expected: ScenarioExpectation { min_angles_covered: 2, max_wasted_fetches: 1 },
+        expected: ScenarioExpectation {
+            min_angles_covered: 2,
+            max_wasted_fetches: 1,
+        },
         overrides: ScenarioOverrides {
             seed_queries: vec!["mechanism".into(), "market".into()],
             ..Default::default()
@@ -58,10 +61,19 @@ async fn mock_fetcher_succeeds_only_on_fetchable() {
     let mut scn = base_scenario();
     scn.corpus[0].fetchable = false;
     let f = MockFetcher::new(&scn);
-    assert!(f.fetch(&scn.source.url).await.is_ok(), "source always fetchable");
-    assert!(matches!(f.fetch(&scn.corpus[0].url).await, Err(PipelineError::BotBlocked)));
+    assert!(
+        f.fetch(&scn.source.url).await.is_ok(),
+        "source always fetchable"
+    );
+    assert!(matches!(
+        f.fetch(&scn.corpus[0].url).await,
+        Err(PipelineError::BotBlocked)
+    ));
     assert!(f.fetch(&scn.corpus[1].url).await.is_ok());
-    assert!(matches!(f.fetch("https://unknown.example/x").await, Err(PipelineError::PageNotFound)));
+    assert!(matches!(
+        f.fetch("https://unknown.example/x").await,
+        Err(PipelineError::PageNotFound)
+    ));
     assert_eq!(f.fetch_count(), 4);
 }
 
@@ -72,7 +84,10 @@ async fn ai_aware_fetcher_seeds_keywords_for_ai_source() {
     let f = AiAwareMockFetcher::new(&scn);
     let a = f.fetch(&scn.source.url).await.unwrap();
     assert!(a.text.contains("LLM"), "AI source must contain LLM keyword");
-    assert!(a.text.contains("agent"), "AI source must contain agent keyword");
+    assert!(
+        a.text.contains("agent"),
+        "AI source must contain agent keyword"
+    );
 }
 
 #[tokio::test]
@@ -80,7 +95,10 @@ async fn ai_aware_fetcher_plain_text_for_non_ai() {
     let scn = base_scenario();
     let f = AiAwareMockFetcher::new(&scn);
     let a = f.fetch(&scn.source.url).await.unwrap();
-    assert!(!a.text.contains("LLM"), "non-AI source must not contain LLM keyword");
+    assert!(
+        !a.text.contains("LLM"),
+        "non-AI source must not contain LLM keyword"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -94,22 +112,40 @@ async fn mock_search_filters_by_window() {
     let s = MockSearchProvider::new(&scn);
 
     // 7d window excludes the ancient article.
-    let w = FreshnessWindow { recency_minutes: Some(10_080), bucket: "fast" };
+    let w = FreshnessWindow {
+        recency_minutes: Some(10_080),
+        bucket: "fast",
+    };
     let hits = s.search(&["mechanism".into()], w, 10, 0).await.unwrap();
-    assert!(!hits.iter().any(|h| h.url == scn.corpus[0].url), "ancient article leaked through");
+    assert!(
+        !hits.iter().any(|h| h.url == scn.corpus[0].url),
+        "ancient article leaked through"
+    );
 
     // Evergreen (no filter) includes it.
-    let w = FreshnessWindow { recency_minutes: None, bucket: "evergreen" };
+    let w = FreshnessWindow {
+        recency_minutes: None,
+        bucket: "evergreen",
+    };
     let hits = s.search(&["mechanism".into()], w, 10, 0).await.unwrap();
-    assert!(hits.iter().any(|h| h.url == scn.corpus[0].url), "evergreen must not filter");
+    assert!(
+        hits.iter().any(|h| h.url == scn.corpus[0].url),
+        "evergreen must not filter"
+    );
 }
 
 #[tokio::test]
 async fn mock_search_dedupes_across_queries() {
     let scn = base_scenario();
     let s = MockSearchProvider::new(&scn);
-    let w = FreshnessWindow { recency_minutes: None, bucket: "evergreen" };
-    let hits = s.search(&["mechanism".into(), "mechanism".into()], w, 10, 0).await.unwrap();
+    let w = FreshnessWindow {
+        recency_minutes: None,
+        bucket: "evergreen",
+    };
+    let hits = s
+        .search(&["mechanism".into(), "mechanism".into()], w, 10, 0)
+        .await
+        .unwrap();
     let mut urls: Vec<_> = hits.iter().map(|h| h.url.clone()).collect();
     urls.sort();
     urls.dedup();
@@ -121,7 +157,10 @@ async fn mock_search_rate_limits_after_n_calls() {
     let mut scn = base_scenario();
     scn.overrides.rate_limit_after = Some(1);
     let s = MockSearchProvider::new(&scn);
-    let w = FreshnessWindow { recency_minutes: None, bucket: "evergreen" };
+    let w = FreshnessWindow {
+        recency_minutes: None,
+        bucket: "evergreen",
+    };
     assert!(s.search(&["mechanism".into()], w, 5, 0).await.is_ok());
     assert!(matches!(
         s.search(&["mechanism".into()], w, 5, 0).await,
@@ -132,9 +171,14 @@ async fn mock_search_rate_limits_after_n_calls() {
 #[tokio::test]
 async fn mock_search_round_override_wins() {
     let mut scn = base_scenario();
-    scn.overrides.round_overrides.insert(1, vec![scn.corpus[5].url.clone()]);
+    scn.overrides
+        .round_overrides
+        .insert(1, vec![scn.corpus[5].url.clone()]);
     let s = MockSearchProvider::new(&scn);
-    let w = FreshnessWindow { recency_minutes: None, bucket: "evergreen" };
+    let w = FreshnessWindow {
+        recency_minutes: None,
+        bucket: "evergreen",
+    };
     let hits = s.search(&["mechanism".into()], w, 10, 0).await.unwrap();
     assert_eq!(hits.len(), 1);
     assert_eq!(hits[0].url, scn.corpus[5].url);
@@ -144,13 +188,19 @@ async fn mock_search_round_override_wins() {
 async fn mock_search_find_similar_returns_same_angle() {
     let scn = base_scenario();
     let s = MockSearchProvider::new(&scn);
-    let w = FreshnessWindow { recency_minutes: None, bucket: "evergreen" };
+    let w = FreshnessWindow {
+        recency_minutes: None,
+        bucket: "evergreen",
+    };
     let similar = s.find_similar(&scn.corpus[0].url, w, 10, 0).await.unwrap();
     assert!(!similar.is_empty());
     let src_angle = scn.corpus[0].angle.clone();
     for h in &similar {
         let art = scn.corpus.iter().find(|a| a.url == h.url).unwrap();
-        assert_eq!(art.angle, src_angle, "find_similar must return same-angle articles");
+        assert_eq!(
+            art.angle, src_angle,
+            "find_similar must return same-angle articles"
+        );
     }
 }
 
@@ -170,21 +220,33 @@ async fn scripted_llm_routes_by_prompt() {
     );
 
     // Classification call.
-    let c = llm.chat_json("You classify articles. JSON only.", "x").await.unwrap();
+    let c = llm
+        .chat_json("You classify articles. JSON only.", "x")
+        .await
+        .unwrap();
     assert!(c.contains("\"is_ai\": true"), "{c}");
 
     // Seed-query extraction call.
-    let q = llm.chat_json("You extract search queries. JSON only.", "x").await.unwrap();
+    let q = llm
+        .chat_json("You extract search queries. JSON only.", "x")
+        .await
+        .unwrap();
     assert!(q.contains("q1"), "{q}");
     assert!(q.contains("q2"), "{q}");
 
     // Coverage call with no corpus in prompt → 0 coverage, dynamic angles.
-    let cov = llm.chat_json("You assess coverage. JSON only.", "CORPUS:\n").await.unwrap();
+    let cov = llm
+        .chat_json("You assess coverage. JSON only.", "CORPUS:\n")
+        .await
+        .unwrap();
     assert!(
         cov.contains("\"coverage\": 0") && !cov.contains("\"coverage\": 0."),
         "coverage must be 0 with empty corpus: {cov}"
     );
-    assert!(cov.contains("mechanism"), "uncovered angles must include corpus angles: {cov}");
+    assert!(
+        cov.contains("mechanism"),
+        "uncovered angles must include corpus angles: {cov}"
+    );
 }
 
 #[tokio::test]
@@ -196,16 +258,32 @@ async fn scripted_llm_coverage_from_corpus_lines() {
         "CORPUS:\n- Title ({})\n- Title2 ({})",
         scn.corpus[0].url, scn.corpus[3].url
     );
-    let cov = llm.chat_json("You assess coverage. JSON only.", &prompt).await.unwrap();
+    let cov = llm
+        .chat_json("You assess coverage. JSON only.", &prompt)
+        .await
+        .unwrap();
     assert!(cov.contains("\"coverage\": 0.3333333333333333"), "{cov}");
 }
 
 #[tokio::test]
 async fn scripted_llm_explicit_coverage_sequence() {
     let scn = base_scenario();
-    let llm = ScriptedLlm::new(vec![0.4, 0.9], vec!["mechanism".into()], vec![], false, 3, &scn.corpus);
-    let c1 = llm.chat_json("You assess coverage. JSON only.", "x").await.unwrap();
-    let c2 = llm.chat_json("You assess coverage. JSON only.", "x").await.unwrap();
+    let llm = ScriptedLlm::new(
+        vec![0.4, 0.9],
+        vec!["mechanism".into()],
+        vec![],
+        false,
+        3,
+        &scn.corpus,
+    );
+    let c1 = llm
+        .chat_json("You assess coverage. JSON only.", "x")
+        .await
+        .unwrap();
+    let c2 = llm
+        .chat_json("You assess coverage. JSON only.", "x")
+        .await
+        .unwrap();
     assert!(c1.contains("0.4"), "{c1}");
     assert!(c2.contains("0.9"), "{c2}");
 }
@@ -228,7 +306,11 @@ async fn scripted_llm_synthesize_cites_all_related() {
         })
         .collect();
     let s = llm.synthesize(&src, &related).await.unwrap();
-    assert_eq!(s.citations.len(), related.len() + 1, "source + all related cited");
+    assert_eq!(
+        s.citations.len(),
+        related.len() + 1,
+        "source + all related cited"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -262,7 +344,11 @@ fn run_scenario_fails_when_wasted_exceeds() {
     scn.corpus[1].fetchable = false;
     scn.corpus[2].fetchable = false;
     let r = run_scenario(&scn, Policy::default());
-    assert!(!r.passed, "wasted={} max={}", r.wasted_fetches, r.wasted_max);
+    assert!(
+        !r.passed,
+        "wasted={} max={}",
+        r.wasted_fetches, r.wasted_max
+    );
 }
 
 #[test]
@@ -312,7 +398,14 @@ async fn full_loop_honors_policy_budget() {
     ));
     let clock: Clock = Arc::new(FakeClock::new(1_785_484_800));
     let config = Config {
-        policy: Policy { initial_k: 3, expansion_k: 2, coverage_target: 0.85, min_new_articles: 1, max_rounds: 3, search_budget: 10 },
+        policy: Policy {
+            initial_k: 3,
+            expansion_k: 2,
+            coverage_target: 0.85,
+            min_new_articles: 1,
+            max_rounds: 3,
+            search_budget: 10,
+        },
         ..Default::default()
     };
     let deps = Deps {
@@ -323,14 +416,21 @@ async fn full_loop_honors_policy_budget() {
         config: Arc::new(config),
     };
     let a = analyze(
-        AnalysisRequest { url: scn.source.url.clone(), channel: ChannelCtx { id: "t".into() } },
+        AnalysisRequest {
+            url: scn.source.url.clone(),
+            channel: ChannelCtx { id: "t".into() },
+        },
         &deps,
     )
     .await
     .unwrap();
     assert_eq!(a.meta.stop_reason, "coverage(0.90)");
     assert!(a.meta.corpus_size >= 1);
-    assert!(fetcher.fetch_count() <= 11, "budget exceeded: {}", fetcher.fetch_count());
+    assert!(
+        fetcher.fetch_count() <= 11,
+        "budget exceeded: {}",
+        fetcher.fetch_count()
+    );
 }
 
 #[tokio::test]

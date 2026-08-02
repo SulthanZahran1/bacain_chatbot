@@ -2,12 +2,10 @@
 //! classifier scoring, reader trimming, citation pool, error taxonomy.
 //! These pin the §6/§8/§10 contracts from the spec.
 
-use linkbot_core::citations::{CitationPool, all_legit, pool_from, validate};
+use linkbot_core::citations::{all_legit, pool_from, validate, CitationPool};
 use linkbot_core::classifier::{classify, keyword_score};
-use linkbot_core::domain_speed::{
-    DomainSpeedTable, etld_plus_one, resolve_window,
-};
-use linkbot_core::error::{PipelineError, user_message};
+use linkbot_core::domain_speed::{etld_plus_one, resolve_window, DomainSpeedTable};
+use linkbot_core::error::{user_message, PipelineError};
 use linkbot_core::fetcher::FetchedArticle;
 use linkbot_core::reader::{assemble_corpus, token_budget_chars, trim_head_tail};
 use linkbot_core::synthesizer::{Citation, Synthesis};
@@ -29,21 +27,33 @@ fn breaking_bucket_3d_window() {
 
 #[test]
 fn slow_bucket_90d_window() {
-    let w = resolve_window(&DomainSpeedTable::default(), "https://www.fcc.gov/ruling", false);
+    let w = resolve_window(
+        &DomainSpeedTable::default(),
+        "https://www.fcc.gov/ruling",
+        false,
+    );
     assert_eq!(w.recency_minutes, Some(129_600));
     assert_eq!(w.bucket, "slow");
 }
 
 #[test]
 fn github_evergreen_no_filter() {
-    let w = resolve_window(&DomainSpeedTable::default(), "https://github.com/user/repo", false);
+    let w = resolve_window(
+        &DomainSpeedTable::default(),
+        "https://github.com/user/repo",
+        false,
+    );
     assert_eq!(w.recency_minutes, None);
     assert_eq!(w.bucket, "evergreen");
 }
 
 #[test]
 fn arxiv_standard_30d() {
-    let w = resolve_window(&DomainSpeedTable::default(), "https://arxiv.org/abs/2607.12345", false);
+    let w = resolve_window(
+        &DomainSpeedTable::default(),
+        "https://arxiv.org/abs/2607.12345",
+        false,
+    );
     assert_eq!(w.recency_minutes, Some(43_200));
     assert_eq!(w.bucket, "standard");
 }
@@ -81,8 +91,14 @@ fn etld1_edge_cases() {
     // IP literal: last-two-labels heuristic yields "1.1" — not None, but
     // harmless (never matches a bucket domain).
     assert!(etld_plus_one("https://192.168.1.1/x").is_some());
-    assert_eq!(etld_plus_one("https://a.b.c.example/x"), Some("c.example".into()));
-    assert_eq!(etld_plus_one("https://example.com"), Some("example.com".into()));
+    assert_eq!(
+        etld_plus_one("https://a.b.c.example/x"),
+        Some("c.example".into())
+    );
+    assert_eq!(
+        etld_plus_one("https://example.com"),
+        Some("example.com".into())
+    );
 }
 
 #[test]
@@ -156,7 +172,15 @@ fn classify_ambiguous_llm_gets_title_and_text() {
 
 #[test]
 fn vendor_name_detection() {
-    for name in ["OpenAI", "Anthropic", "Mistral", "Hugging Face", "DeepSeek", "Gemini", "Claude"] {
+    for name in [
+        "OpenAI",
+        "Anthropic",
+        "Mistral",
+        "Hugging Face",
+        "DeepSeek",
+        "Gemini",
+        "Claude",
+    ] {
         let (s, _) = keyword_score(name, "");
         assert!(s > 0, "{name} should score");
     }
@@ -265,7 +289,11 @@ fn assemble_corpus_many_related_split_evenly() {
     // Source used ~0 of its 5000 share → remaining ~9999 splits across 10.
     // Each related gets ≤ 999 + 13 (marker).
     for a in &rt {
-        assert!(a.text.chars().count() <= 1_012, "{}", a.text.chars().count());
+        assert!(
+            a.text.chars().count() <= 1_012,
+            "{}",
+            a.text.chars().count()
+        );
     }
     // Every related survived trimming with both head and tail content.
     for a in &rt {
@@ -302,7 +330,10 @@ fn validate_returns_exact_pool_url() {
         summary: "".into(),
         deep_analysis: "".into(),
         critique: "".into(),
-        citations: vec![Citation { url: "https://example.com/Path".into(), context: "c".into() }],
+        citations: vec![Citation {
+            url: "https://example.com/Path".into(),
+            context: "c".into(),
+        }],
     };
     let (kept, rejected) = validate(&mut s, &p);
     assert!(rejected.is_empty());
@@ -319,7 +350,10 @@ fn all_legit_detects_any_out_of_pool() {
         summary: "".into(),
         deep_analysis: "".into(),
         critique: "".into(),
-        citations: vec![Citation { url: "https://a.com/1".into(), context: "c".into() }],
+        citations: vec![Citation {
+            url: "https://a.com/1".into(),
+            context: "c".into(),
+        }],
     };
     assert!(all_legit(&ok, &p));
     let bad = Synthesis {
@@ -327,7 +361,16 @@ fn all_legit_detects_any_out_of_pool() {
         summary: "".into(),
         deep_analysis: "".into(),
         critique: "".into(),
-        citations: vec![Citation { url: "https://a.com/1".into(), context: "c".into() }, Citation { url: "https://b.com/2".into(), context: "c2".into() }],
+        citations: vec![
+            Citation {
+                url: "https://a.com/1".into(),
+                context: "c".into(),
+            },
+            Citation {
+                url: "https://b.com/2".into(),
+                context: "c2".into(),
+            },
+        ],
     };
     assert!(!all_legit(&bad, &p));
 }
@@ -364,7 +407,10 @@ fn validate_drops_all_when_nothing_in_pool() {
         summary: "".into(),
         deep_analysis: "".into(),
         critique: "".into(),
-        citations: vec![Citation { url: "https://x.com/1".into(), context: "c".into() }],
+        citations: vec![Citation {
+            url: "https://x.com/1".into(),
+            context: "c".into(),
+        }],
     };
     let (kept, rejected) = validate(&mut s, &p);
     assert!(kept.is_empty());

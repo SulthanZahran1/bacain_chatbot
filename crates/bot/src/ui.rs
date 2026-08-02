@@ -221,16 +221,25 @@ mod tests {
     fn split_never_cuts_urls() {
         // 2000 'a's, then a long URL with no following whitespace — the
         // URL must never be split mid-string.
-        let text = format!("{} <https://example.com/{}/>", "a".repeat(1980), "b".repeat(400));
+        let text = format!(
+            "{} <https://example.com/{}/>",
+            "a".repeat(1980),
+            "b".repeat(400)
+        );
         for c in split_chunks(&text, MAX_MSG_CHARS) {
             // Each chunk must not contain a broken '<' without '>'.
-            assert_eq!(c.matches('<').count(), c.matches('>').count(), "chunk: {c:?}");
+            assert_eq!(
+                c.matches('<').count(),
+                c.matches('>').count(),
+                "chunk: {c:?}"
+            );
         }
     }
 
     #[test]
     fn strip_cite_markers_removes_inline_citations() {
-        let text = "- Mutation testing injects bugs. [cite testmuai]\n- Second point [cite src] here";
+        let text =
+            "- Mutation testing injects bugs. [cite testmuai]\n- Second point [cite src] here";
         let cleaned = strip_cite_markers(text);
         assert!(!cleaned.contains("[cite"));
         assert!(cleaned.contains("Mutation testing injects bugs."));

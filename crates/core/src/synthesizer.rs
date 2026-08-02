@@ -27,7 +27,11 @@ pub fn title_from_summary(summary: &str) -> String {
     let words: Vec<&str> = summary.split_whitespace().collect();
     let n = words.len().min(4);
     let t = words[..n].join(" ");
-    if t.is_empty() { "Link analysis".to_string() } else { t }
+    if t.is_empty() {
+        "Link analysis".to_string()
+    } else {
+        t
+    }
 }
 
 pub const SYSTEM_PROMPT: &str = r#"You are a rigorous technology analyst. You will be given:

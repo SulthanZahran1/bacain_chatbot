@@ -284,8 +284,7 @@ pub async fn analyze(req: AnalysisRequest, deps: &Deps) -> Result<Analysis, Pipe
         let assess = if cov_remaining.is_zero() {
             Err(PipelineError::DeadlineExceeded)
         } else {
-            match tokio::time::timeout(cov_remaining, assess_coverage(deps, &source, &corpus))
-                .await
+            match tokio::time::timeout(cov_remaining, assess_coverage(deps, &source, &corpus)).await
             {
                 Ok(r) => r,
                 Err(_) => {
@@ -345,10 +344,13 @@ pub async fn analyze(req: AnalysisRequest, deps: &Deps) -> Result<Analysis, Pipe
     // Bound the synthesis call to the REMAINING deadline budget: the LLM
     // client's own 90s timeout would otherwise sail past the 60s SLA.
     let remaining = deadline.saturating_duration_since(std::time::Instant::now());
-    let synthesis = tokio::time::timeout(remaining, deps.llm.synthesize(&source_trimmed, &related_trimmed))
-        .await
-        .map_err(|_| PipelineError::DeadlineExceeded)?
-        .map_err(|e| PipelineError::SynthesisFailed(format!("synthesis: {e}")))?;
+    let synthesis = tokio::time::timeout(
+        remaining,
+        deps.llm.synthesize(&source_trimmed, &related_trimmed),
+    )
+    .await
+    .map_err(|_| PipelineError::DeadlineExceeded)?
+    .map_err(|e| PipelineError::SynthesisFailed(format!("synthesis: {e}")))?;
     let mut pool = CitationPool::new();
     pool.insert(&source.url);
     for a in &corpus {

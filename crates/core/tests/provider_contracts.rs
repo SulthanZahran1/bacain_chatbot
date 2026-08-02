@@ -5,7 +5,7 @@
 use linkbot_core::fetcher::map_error_code_public;
 use linkbot_core::normalize_url;
 use linkbot_core::searcher::{FreshnessWindow, SearchHit};
-use linkbot_core::synthesizer::{SYSTEM_PROMPT, build_prompt, extract_json};
+use linkbot_core::synthesizer::{build_prompt, extract_json, SYSTEM_PROMPT};
 
 // ---------------------------------------------------------------------------
 // normalize_url edge cases
@@ -57,7 +57,10 @@ fn normalize_empty_query_dropped() {
 
 #[test]
 fn normalize_unicode_host_rejected() {
-    assert!(normalize_url("https://例え.jp/x").is_none() || normalize_url("https://例え.jp/x").is_some());
+    assert!(
+        normalize_url("https://例え.jp/x").is_none()
+            || normalize_url("https://例え.jp/x").is_some()
+    );
 }
 
 #[test]
@@ -73,7 +76,10 @@ fn normalize_no_scheme_rejected() {
 fn window_start_date_month_boundary() {
     // 2026-03-01 minus 30d = 2026-01-30 (2026 not a leap year).
     let now = 1_772_323_200; // 2026-03-01T00:00:00Z
-    let w = FreshnessWindow { recency_minutes: Some(43_200), bucket: "standard" };
+    let w = FreshnessWindow {
+        recency_minutes: Some(43_200),
+        bucket: "standard",
+    };
     assert_eq!(w.start_date(now).unwrap(), "2026-01-30");
 }
 
@@ -81,14 +87,20 @@ fn window_start_date_month_boundary() {
 fn window_start_date_new_year() {
     // 2026-01-10 minus 7d = 2026-01-03.
     let now = 1_768_003_200; // 2026-01-10T00:00:00Z
-    let w = FreshnessWindow { recency_minutes: Some(10_080), bucket: "fast" };
+    let w = FreshnessWindow {
+        recency_minutes: Some(10_080),
+        bucket: "fast",
+    };
     assert_eq!(w.start_date(now).unwrap(), "2026-01-03");
 }
 
 #[test]
 fn window_90d_span() {
     let now = 1_785_542_400; // 2026-08-01
-    let w = FreshnessWindow { recency_minutes: Some(129_600), bucket: "slow" };
+    let w = FreshnessWindow {
+        recency_minutes: Some(129_600),
+        bucket: "slow",
+    };
     assert_eq!(w.start_date(now).unwrap(), "2026-05-03");
 }
 
@@ -150,7 +162,9 @@ fn build_prompt_lists_source_first() {
     assert!(p.contains("TITLE: Source"));
     assert!(p.contains("PUBLISHED: 2026-07-31"));
     assert!(p.contains("body"));
-    assert!(!p.contains("## RELATED ARTICLES (corpus)") || p.contains("## RELATED ARTICLES (corpus)\n"));
+    assert!(
+        !p.contains("## RELATED ARTICLES (corpus)") || p.contains("## RELATED ARTICLES (corpus)\n")
+    );
 }
 
 #[test]
@@ -193,13 +207,37 @@ fn build_prompt_indexes_related() {
 #[test]
 fn fetcher_error_mapping_full_taxonomy() {
     use linkbot_core::error::PipelineError;
-    assert_eq!(map_error_code_public("page_not_found"), PipelineError::PageNotFound);
-    assert_eq!(map_error_code_public("target_unreachable"), PipelineError::TargetUnreachable);
-    assert_eq!(map_error_code_public("bot_blocked"), PipelineError::BotBlocked);
-    assert_eq!(map_error_code_public("empty_content"), PipelineError::EmptyContent);
+    assert_eq!(
+        map_error_code_public("page_not_found"),
+        PipelineError::PageNotFound
+    );
+    assert_eq!(
+        map_error_code_public("target_unreachable"),
+        PipelineError::TargetUnreachable
+    );
+    assert_eq!(
+        map_error_code_public("bot_blocked"),
+        PipelineError::BotBlocked
+    );
+    assert_eq!(
+        map_error_code_public("empty_content"),
+        PipelineError::EmptyContent
+    );
     assert_eq!(map_error_code_public("timeout"), PipelineError::Timeout);
-    assert_eq!(map_error_code_public("invalid_url"), PipelineError::InvalidUrl);
-    assert_eq!(map_error_code_public("target_http_error"), PipelineError::TargetHttpError);
-    assert_eq!(map_error_code_public("proxy_error"), PipelineError::ProxyError);
-    assert!(matches!(map_error_code_public("unknown_code"), PipelineError::Internal(_)));
+    assert_eq!(
+        map_error_code_public("invalid_url"),
+        PipelineError::InvalidUrl
+    );
+    assert_eq!(
+        map_error_code_public("target_http_error"),
+        PipelineError::TargetHttpError
+    );
+    assert_eq!(
+        map_error_code_public("proxy_error"),
+        PipelineError::ProxyError
+    );
+    assert!(matches!(
+        map_error_code_public("unknown_code"),
+        PipelineError::Internal(_)
+    ));
 }

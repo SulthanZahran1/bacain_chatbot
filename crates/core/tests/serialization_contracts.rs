@@ -14,7 +14,10 @@ use linkbot_core::searcher::{FreshnessWindow, SearchHit};
 
 #[test]
 fn end_date_is_today() {
-    let w = FreshnessWindow { recency_minutes: Some(60), bucket: "fast" };
+    let w = FreshnessWindow {
+        recency_minutes: Some(60),
+        bucket: "fast",
+    };
     // 2026-08-01T12:00:00Z → same day.
     let now = 1_785_585_600;
     assert_eq!(w.end_date(now), "2026-08-01");
@@ -22,13 +25,19 @@ fn end_date_is_today() {
 
 #[test]
 fn start_date_evergreen_is_none() {
-    let w = FreshnessWindow { recency_minutes: None, bucket: "evergreen" };
+    let w = FreshnessWindow {
+        recency_minutes: None,
+        bucket: "evergreen",
+    };
     assert_eq!(w.start_date(1_785_542_400), None);
 }
 
 #[test]
 fn start_date_hourly_window() {
-    let w = FreshnessWindow { recency_minutes: Some(60), bucket: "fast" };
+    let w = FreshnessWindow {
+        recency_minutes: Some(60),
+        bucket: "fast",
+    };
     // 2026-08-01T00:30Z minus 60m = 2026-07-31T23:30Z → previous day.
     let now = 1_785_544_200;
     assert_eq!(w.start_date(now).unwrap(), "2026-07-31");
@@ -36,7 +45,10 @@ fn start_date_hourly_window() {
 
 #[test]
 fn start_date_exact_day_boundary() {
-    let w = FreshnessWindow { recency_minutes: Some(1440), bucket: "fast" };
+    let w = FreshnessWindow {
+        recency_minutes: Some(1440),
+        bucket: "fast",
+    };
     // Exactly 1 day back stays on the same date.
     let now = 1_785_542_400 + 86_400;
     assert_eq!(w.start_date(now).unwrap(), "2026-08-01");
@@ -44,7 +56,10 @@ fn start_date_exact_day_boundary() {
 
 #[test]
 fn window_epoch_zero() {
-    let w = FreshnessWindow { recency_minutes: Some(10_080), bucket: "fast" };
+    let w = FreshnessWindow {
+        recency_minutes: Some(10_080),
+        bucket: "fast",
+    };
     // Unix epoch minus 7 days → 1969-12-25.
     assert_eq!(w.start_date(0).unwrap(), "1969-12-25");
     assert_eq!(w.end_date(0), "1970-01-01");
@@ -58,7 +73,10 @@ fn window_bucket_roundtrip_labels() {
         ("standard", 43_200),
         ("slow", 129_600),
     ] {
-        let w = FreshnessWindow { recency_minutes: Some(minutes), bucket };
+        let w = FreshnessWindow {
+            recency_minutes: Some(minutes),
+            bucket,
+        };
         assert!(!w.is_evergreen());
         assert!(w.start_date(1_785_542_400).is_some());
     }
@@ -87,7 +105,10 @@ fn sample_scenario(id: &str) -> Scenario {
             title: "R".into(),
             snippet: "s".into(),
         }],
-        expected: ScenarioExpectation { min_angles_covered: 2, max_wasted_fetches: 1 },
+        expected: ScenarioExpectation {
+            min_angles_covered: 2,
+            max_wasted_fetches: 1,
+        },
         overrides: ScenarioOverrides {
             seed_queries: vec!["mechanism".into()],
             ..Default::default()
@@ -132,7 +153,10 @@ fn scenario_missing_overrides_defaults() {
 #[test]
 fn scenario_corpus_missing_field_errors() {
     let j = r#"{"id":"x","source":{"url":"https://a/b","domain_bucket":"fast","is_ai_topic":false,"ground_truth_angles":1,"title":"T"},"expected":{"min_angles_covered":1,"max_wasted_fetches":0}}"#;
-    assert!(serde_json::from_str::<Scenario>(j).is_err(), "corpus is required");
+    assert!(
+        serde_json::from_str::<Scenario>(j).is_err(),
+        "corpus is required"
+    );
 }
 
 #[test]
@@ -166,7 +190,11 @@ fn scenario_load_all_ignores_bad_json() {
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     std::fs::write(dir.join("broken.json"), "{not json").unwrap();
-    std::fs::write(dir.join("good.json"), serde_json::to_string(&sample_scenario("g")).unwrap()).unwrap();
+    std::fs::write(
+        dir.join("good.json"),
+        serde_json::to_string(&sample_scenario("g")).unwrap(),
+    )
+    .unwrap();
     let loaded = Scenario::load_all(dir.to_str().unwrap());
     assert_eq!(loaded.len(), 1, "broken file skipped");
     assert_eq!(loaded[0].id, "g");
@@ -230,7 +258,10 @@ fn search_hit_with_dates_deserialize() {
 #[test]
 fn scenario_result_accumulates_metrics() {
     let scn = sample_scenario("metrics");
-    let r = linkbot_core::scenario::run_scenario(&scn, linkbot_core::optimizer_policy::Policy::default());
+    let r = linkbot_core::scenario::run_scenario(
+        &scn,
+        linkbot_core::optimizer_policy::Policy::default(),
+    );
     // The run must produce a deterministic, inspectable result (usize fields).
     assert!(r.angles_expected >= 1);
     assert!(!r.detail.is_empty(), "detail must explain the outcome");
@@ -239,7 +270,10 @@ fn scenario_result_accumulates_metrics() {
 #[test]
 fn scenario_result_passed_flag_consistent() {
     let scn = sample_scenario("consistency");
-    let r = linkbot_core::scenario::run_scenario(&scn, linkbot_core::optimizer_policy::Policy::default());
+    let r = linkbot_core::scenario::run_scenario(
+        &scn,
+        linkbot_core::optimizer_policy::Policy::default(),
+    );
     if r.passed {
         assert!(r.angles_covered >= r.angles_expected);
         assert!(r.wasted_fetches <= r.wasted_max);

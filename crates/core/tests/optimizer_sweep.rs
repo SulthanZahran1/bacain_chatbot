@@ -107,7 +107,10 @@ fn sweep_ranks_better_policies_first() {
         results[1].score
     );
     // The conservative cell (fewer dead fetches) must win.
-    assert_eq!(results[0].policy.initial_k, 3, "conservative wins on dead-heavy corpus");
+    assert_eq!(
+        results[0].policy.initial_k, 3,
+        "conservative wins on dead-heavy corpus"
+    );
 }
 
 #[test]
