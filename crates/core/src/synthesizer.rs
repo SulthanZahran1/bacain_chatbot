@@ -68,7 +68,10 @@ CITATION RULES (hard constraints):
 - Every citation must actually support the claim it is attached to.
 - The source article itself may be cited as [source].
 - If nothing in the corpus supports a claim, make the claim without a citation.
-- Use the exact URLs as given — do not alter protocol, host, or path."#;
+- Use the exact URLs as given — do not alter protocol, host, or path.
+- NEVER write inline citation markers like [cite x], [1], [source] inside
+  summary, deep_analysis, or critique. Citations live ONLY in the
+  "citations" array. Write claims as plain prose/bullets."#;
 
 /// Build the user message: source article + related corpus with URLs.
 pub fn build_prompt(

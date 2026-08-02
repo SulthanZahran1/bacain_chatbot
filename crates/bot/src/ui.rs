@@ -10,6 +10,30 @@ use tracing::warn;
 /// Discord hard limit.
 pub const MAX_MSG_CHARS: usize = 2000;
 
+/// Strip leftover `[cite x]` / `[1]`-style inline markers the model may
+/// emit (citations render in the Sources section instead). Defense in
+/// depth — the prompt also forbids them.
+pub fn strip_cite_markers(text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(start) = rest.find("[cite") {
+        out.push_str(&rest[..start]);
+        let after = &rest[start + 5..];
+        // Find the closing ']' — drop through it, keep everything after.
+        match after.find(']') {
+            Some(idx) => {
+                rest = &after[idx + 1..];
+            }
+            None => {
+                // Unclosed marker — drop the rest of the string.
+                rest = "";
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
 /// Split text at paragraph boundaries so each chunk ≤ 2000 chars (§10).
 pub fn split_chunks(text: &str, limit: usize) -> Vec<String> {
     if text.chars().count() <= limit {
@@ -22,13 +46,20 @@ pub fn split_chunks(text: &str, limit: usize) -> Vec<String> {
             if !current.is_empty() {
                 chunks.push(std::mem::take(&mut current));
             }
-            // A single paragraph longer than limit: hard-split.
+            // A single paragraph longer than limit: hard-split at the last
+            // whitespace before the boundary — never mid-URL/word (a
+            // truncated <url renders as plain text, breaking the link).
             if para.chars().count() > limit {
                 let mut rest = para.to_string();
                 while rest.chars().count() > limit {
-                    let take: String = rest.chars().take(limit).collect();
+                    let candidate: String = rest.chars().take(limit).collect();
+                    let cut = match candidate.rfind(char::is_whitespace) {
+                        Some(idx) if idx > 0 => idx,
+                        _ => limit, // no whitespace — unavoidable hard cut
+                    };
+                    let take: String = candidate.chars().take(cut).collect();
                     chunks.push(take);
-                    rest = rest.chars().skip(limit).collect();
+                    rest = rest.chars().skip(cut).collect();
                 }
                 current = rest;
             } else {
@@ -98,7 +129,7 @@ pub async fn post_analysis(
         .await;
 
     // Msg 2 — Deep analysis (split on paragraphs).
-    for chunk in split_chunks(&analysis.deep_analysis, MAX_MSG_CHARS) {
+    for chunk in split_chunks(&strip_cite_markers(&analysis.deep_analysis), MAX_MSG_CHARS) {
         let _ = thread_id
             .send_message(
                 &ctx.http,
@@ -184,6 +215,32 @@ mod tests {
         for c in &chunks {
             assert!(c.chars().count() <= MAX_MSG_CHARS);
         }
+    }
+
+    #[test]
+    fn split_never_cuts_urls() {
+        // 2000 'a's, then a long URL with no following whitespace — the
+        // URL must never be split mid-string.
+        let text = format!("{} <https://example.com/{}/>", "a".repeat(1980), "b".repeat(400));
+        for c in split_chunks(&text, MAX_MSG_CHARS) {
+            // Each chunk must not contain a broken '<' without '>'.
+            assert_eq!(c.matches('<').count(), c.matches('>').count(), "chunk: {c:?}");
+        }
+    }
+
+    #[test]
+    fn strip_cite_markers_removes_inline_citations() {
+        let text = "- Mutation testing injects bugs. [cite testmuai]\n- Second point [cite src] here";
+        let cleaned = strip_cite_markers(text);
+        assert!(!cleaned.contains("[cite"));
+        assert!(cleaned.contains("Mutation testing injects bugs."));
+        assert!(cleaned.contains("Second point"));
+    }
+
+    #[test]
+    fn strip_cite_markers_handles_unclosed() {
+        let text = "text [cite broken";
+        assert_eq!(strip_cite_markers(text), "text ");
     }
 
     #[test]
