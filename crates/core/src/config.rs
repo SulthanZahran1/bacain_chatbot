@@ -14,6 +14,12 @@ pub struct Config {
     pub llm_api_base: String,
     pub llm_api_key: String,
     pub llm_model: String,
+    /// Optional secondary LLM provider — tried when the primary fails
+    /// (LLM_FALLBACK_API_BASE / LLM_FALLBACK_API_KEY / LLM_FALLBACK_MODEL).
+    /// Empty fields = no fallback.
+    pub llm_fallback_base: String,
+    pub llm_fallback_key: String,
+    pub llm_fallback_model: String,
 
     // --- gates ---
     pub analyze_channels: Vec<String>, // empty = ALLOW_ALL
@@ -50,6 +56,9 @@ impl Default for Config {
             llm_api_base: "https://ollama.com/v1".into(),
             llm_api_key: String::new(),
             llm_model: "deepseek-v4-flash:0731".into(),
+            llm_fallback_base: String::new(),
+            llm_fallback_key: String::new(),
+            llm_fallback_model: String::new(),
             analyze_channels: vec![],
             allow_all_channels: true,
             cooldown_secs: 60,
@@ -89,6 +98,9 @@ impl Config {
             llm_api_base: get("LLM_API_BASE"),
             llm_api_key: get("LLM_API_KEY"),
             llm_model: get("LLM_MODEL"),
+            llm_fallback_base: get("LLM_FALLBACK_API_BASE"),
+            llm_fallback_key: get("LLM_FALLBACK_API_KEY"),
+            llm_fallback_model: get("LLM_FALLBACK_MODEL"),
             allow_all_channels: allow_all,
             analyze_channels: channels,
             cooldown_secs: parse_i64("COOLDOWN_SECS", 60),
@@ -114,6 +126,13 @@ impl Config {
 
     pub fn channel_allowed(&self, channel_id: &str) -> bool {
         self.allow_all_channels || self.analyze_channels.iter().any(|c| c == channel_id)
+    }
+
+    /// Whether a secondary LLM provider is configured (all three fields set).
+    pub fn has_llm_fallback(&self) -> bool {
+        !self.llm_fallback_base.is_empty()
+            && !self.llm_fallback_key.is_empty()
+            && !self.llm_fallback_model.is_empty()
     }
 }
 

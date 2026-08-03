@@ -306,10 +306,19 @@ impl SharedDeps {
         let searcher: Arc<dyn linkbot_core::searcher::SearchProvider> = Arc::new(
             linkbot_core::searcher::ExaSearchProvider::new(self.config.exa_api_key.clone()),
         );
-        let llm = Arc::new(linkbot_core::synthesizer::LlmClient::new(
-            self.config.llm_api_base.clone(),
-            self.config.llm_api_key.clone(),
-            self.config.llm_model.clone(),
+        let llm = Arc::new(linkbot_core::synthesizer::FallbackLlm::new(
+            linkbot_core::synthesizer::LlmClient::new(
+                self.config.llm_api_base.clone(),
+                self.config.llm_api_key.clone(),
+                self.config.llm_model.clone(),
+            ),
+            self.config.has_llm_fallback().then(|| {
+                linkbot_core::synthesizer::LlmClient::new(
+                    self.config.llm_fallback_base.clone(),
+                    self.config.llm_fallback_key.clone(),
+                    self.config.llm_fallback_model.clone(),
+                )
+            }),
         ));
         pipeline::Deps {
             fetcher,

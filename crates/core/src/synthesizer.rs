@@ -279,6 +279,55 @@ impl Llm for LlmClient {
     }
 }
 
+/// Wraps a primary + optional fallback LLM. Primary failure (transport,
+/// HTTP error, empty content, parse failure) falls through to the
+/// secondary provider. Primary success is never re-tried on the fallback —
+/// an analysis that produced valid output is done.
+#[derive(Debug, Clone)]
+pub struct FallbackLlm {
+    primary: LlmClient,
+    fallback: Option<LlmClient>,
+}
+
+impl FallbackLlm {
+    pub fn new(primary: LlmClient, fallback: Option<LlmClient>) -> Self {
+        FallbackLlm { primary, fallback }
+    }
+}
+
+#[async_trait::async_trait]
+impl Llm for FallbackLlm {
+    async fn chat_json(&self, system: &str, user: &str) -> Result<String, PipelineError> {
+        match self.primary.chat_json(system, user).await {
+            Ok(out) => Ok(out),
+            Err(primary_err) => {
+                let Some(fb) = &self.fallback else {
+                    return Err(primary_err);
+                };
+                tracing::warn!(?primary_err, "primary LLM failed; using fallback");
+                fb.chat_json(system, user).await
+            }
+        }
+    }
+
+    async fn synthesize(
+        &self,
+        source: &crate::fetcher::FetchedArticle,
+        related: &[crate::fetcher::FetchedArticle],
+    ) -> Result<Synthesis, PipelineError> {
+        match self.primary.synthesize(source, related).await {
+            Ok(out) => Ok(out),
+            Err(primary_err) => {
+                let Some(fb) = &self.fallback else {
+                    return Err(primary_err);
+                };
+                tracing::warn!(?primary_err, "primary synthesis failed; using fallback");
+                fb.synthesize(source, related).await
+            }
+        }
+    }
+}
+
 /// Some models wrap JSON in ```json fences or prose — extract the first
 /// balanced {...} block.
 pub fn extract_json(raw: &str) -> String {
@@ -345,4 +394,106 @@ mod tests {
         let back: Synthesis = serde_json::from_str(&j).unwrap();
         assert_eq!(s, back);
     }
+
+    #[tokio::test]
+    async fn fallback_llm_primary_success_no_fallback_call() {
+        let primary = FailingLlmClient::new(true);
+        let fb = FailingLlmClient::new(false);
+        let f = FallbackLlm::new(primary.client(), Some(fb.client()));
+        let out = f.chat_json("sys", "usr").await.unwrap();
+        assert_eq!(out, "ok");
+        assert_eq!(primary.calls(), 1);
+        assert_eq!(fb.calls(), 0);
+    }
+
+    #[tokio::test]
+    async fn fallback_llm_primary_failure_uses_fallback() {
+        let primary = FailingLlmClient::new(false);
+        let fb = FailingLlmClient::new(true);
+        let f = FallbackLlm::new(primary.client(), Some(fb.client()));
+        let out = f.chat_json("sys", "usr").await.unwrap();
+        assert_eq!(out, "ok");
+        // Primary: 1 attempt + 1 transient-5xx retry = 2 calls, then fallback.
+        assert_eq!(primary.calls(), 2);
+        assert_eq!(fb.calls(), 1);
+    }
+
+    #[tokio::test]
+    async fn fallback_llm_both_fail_returns_error() {
+        let primary = FailingLlmClient::new(false);
+        let fb = FailingLlmClient::new(false);
+        let f = FallbackLlm::new(primary.client(), Some(fb.client()));
+        let e = f.chat_json("sys", "usr").await.unwrap_err();
+        assert!(matches!(e, PipelineError::SynthesisFailed(_)));
+        assert_eq!(primary.calls(), 2);
+        assert_eq!(fb.calls(), 2);
+    }
+
+    #[tokio::test]
+    async fn fallback_llm_no_fallback_propagates_primary_error() {
+        let primary = FailingLlmClient::new(false);
+        let f = FallbackLlm::new(primary.client(), None);
+        let e = f.chat_json("sys", "usr").await.unwrap_err();
+        assert!(matches!(e, PipelineError::SynthesisFailed(_)));
+        assert_eq!(primary.calls(), 2);
+    }
+}
+
+/// A scriptable LlmClient stand-in for FallbackLlm tests: succeeds iff
+/// `succeed` is true, records call count. Uses a mock HTTP server so the
+/// real LlmClient path (including retry) is exercised.
+#[cfg(test)]
+#[derive(Debug, Clone)]
+struct FailingLlmClient {
+    port: u16,
+    calls: std::sync::Arc<std::sync::atomic::AtomicUsize>,
+}
+
+#[cfg(test)]
+impl FailingLlmClient {
+    fn new(succeed: bool) -> Self {
+        use std::io::Read;
+        use std::io::Write;
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let calls = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let c2 = calls.clone();
+        std::thread::spawn(move || loop {
+            let Ok((mut stream, _)) = listener.accept() else {
+                return;
+            };
+            c2.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            let mut buf = [0u8; 4096];
+            let _ = stream.read(&mut buf);
+            let body = if succeed {
+                ok_body(r#""ok""#)
+            } else {
+                "{}".to_string()
+            };
+            let resp = format!(
+                "HTTP/1.1 {}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                if succeed { "200 OK" } else { "500 Internal Server Error" },
+                body.len()
+            );
+            let _ = stream.write_all(resp.as_bytes());
+        });
+        FailingLlmClient { port, calls }
+    }
+
+    fn client(&self) -> LlmClient {
+        LlmClient::new(
+            format!("http://127.0.0.1:{}", self.port),
+            "test-key".into(),
+            "test-model".into(),
+        )
+    }
+
+    fn calls(&self) -> usize {
+        self.calls.load(std::sync::atomic::Ordering::SeqCst)
+    }
+}
+
+#[cfg(test)]
+fn ok_body(content: &str) -> String {
+    format!(r#"{{"choices":[{{"message":{{"content":{content}}}}}]}}"#)
 }
