@@ -1,7 +1,9 @@
 //! Bot-crate unit tests — pure functions only (§13: "serenity client logic
 //! covered via unit tests on the gate/rendering functions").
 
-use linkbot_bot::events::{bot_self_gate_passes, channel_gate_passes, cooldown_passes, first_link};
+use linkbot_bot::events::{
+    bot_self_gate_passes, channel_gate_passes, cooldown_passes, first_link, media_gate_passes,
+};
 use linkbot_bot::ui::{split_chunks, window_footer, MAX_MSG_CHARS};
 use linkbot_core::config::Config;
 use linkbot_core::pipeline::{Analysis, AnalysisMeta};
@@ -55,6 +57,41 @@ fn first_of_many_links_wins() {
         first_link("https://a.com/1 then https://b.com/2"),
         Some("https://a.com/1".to_string())
     );
+}
+
+#[test]
+fn media_gate_rejects_gif_picker_hosts() {
+    // Discord GIF picker injects Tenor URLs into message content.
+    assert!(!media_gate_passes(
+        "https://tenor.com/view/cat-dance-gif-12345"
+    ));
+    assert!(!media_gate_passes("https://media.tenor.com/abc123/cat.gif"));
+    assert!(!media_gate_passes("https://giphy.com/gifs/xyz-123"));
+    assert!(!media_gate_passes("https://gph.is/2abc"));
+    assert!(!media_gate_passes(
+        "https://media.giphy.com/media/abc/giphy.gif"
+    ));
+    assert!(!media_gate_passes(
+        "https://cdn.discordapp.com/attachments/1/2/img.png"
+    ));
+    assert!(!media_gate_passes("https://imgur.com/a/abc123"));
+    assert!(!media_gate_passes("https://i.imgur.com/abc123.gif"));
+}
+
+#[test]
+fn media_gate_allows_article_hosts() {
+    assert!(media_gate_passes("https://example.com/article"));
+    assert!(media_gate_passes("https://news.ycombinator.com/item?id=1"));
+    assert!(media_gate_passes(
+        "https://subdomain.tenor.com.evil.com/phish"
+    ));
+    assert!(media_gate_passes("https://tenor.com.evil.com/phish"));
+}
+
+#[test]
+fn media_gate_rejects_malformed() {
+    assert!(!media_gate_passes("not a url"));
+    assert!(!media_gate_passes(""));
 }
 
 #[test]

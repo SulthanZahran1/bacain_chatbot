@@ -63,6 +63,38 @@ pub fn channel_gate_passes(cfg: &Config, channel_id: &str) -> bool {
     cfg.channel_allowed(channel_id)
 }
 
+/// Media/GIF hosts that Discord's picker injects into message content.
+/// A message whose only link is one of these is a GIF/sticker/embed,
+/// not an article — skip analysis.
+const MEDIA_HOSTS: &[&str] = &[
+    "tenor.com",
+    "media.tenor.com",
+    "giphy.com",
+    "gph.is",
+    "media.giphy.com",
+    "cdn.discordapp.com",
+    "discord.com",
+    "imgur.com",
+    "i.imgur.com",
+    "gifbin.com",
+    "gifer.com",
+];
+
+/// Gate 1b: reject links to known media hosts (GIF picker, attachments).
+pub fn media_gate_passes(url: &str) -> bool {
+    let Some(host) = url
+        .split("://")
+        .nth(1)
+        .and_then(|rest| rest.split('/').next())
+    else {
+        return false;
+    };
+    let host = host.to_ascii_lowercase();
+    !MEDIA_HOSTS
+        .iter()
+        .any(|m| host == *m || host.ends_with(&format!(".{m}")))
+}
+
 /// Gate 2: never respond to bots (including ourselves).
 /// Takes `msg.author.bot` so the check stays pure and testable without
 /// constructing serenity's non-exhaustive `Message`.
@@ -125,6 +157,10 @@ impl EventHandler for Handler {
         let Some(url) = first_link(&msg.content) else {
             return;
         };
+        // Gate 1b: GIF picker / attachment hosts are not articles.
+        if !media_gate_passes(&url) {
+            return;
+        }
 
         // Cooldown.
         {
