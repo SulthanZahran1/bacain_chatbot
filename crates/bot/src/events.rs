@@ -112,6 +112,39 @@ pub fn cooldown_passes(last: Option<i64>, now: i64, cooldown_secs: i64) -> bool 
     }
 }
 
+/// Outcome of the dedupe + cooldown gates, in evaluation order.
+///
+/// Ordering contract (regression-guarded by tests): a dedupe hit is
+/// evaluated FIRST and short-circuits — a dedupe-skipped message must NOT
+/// consume the channel cooldown, or a legitimate follow-up post within
+/// `cooldown_secs` would be wrongly blocked.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GateDecision {
+    /// Dedupe hit — skip re-analysis (cooldown untouched).
+    DedupeSkipped,
+    /// Inside the per-channel cooldown — blocked (cooldown untouched).
+    CooldownBlocked,
+    /// Both gates pass — analysis proceeds (caller sets the cooldown).
+    Proceed,
+}
+
+/// Evaluate dedupe first, then cooldown. `dedupe_hit` is the store's answer
+/// for this URL. The caller must only run `cooldown_set` on `Proceed`.
+pub fn gate_decision(
+    dedupe_hit: bool,
+    last: Option<i64>,
+    now: i64,
+    cooldown_secs: i64,
+) -> GateDecision {
+    if dedupe_hit {
+        return GateDecision::DedupeSkipped;
+    }
+    if !cooldown_passes(last, now, cooldown_secs) {
+        return GateDecision::CooldownBlocked;
+    }
+    GateDecision::Proceed
+}
+
 /// One /status line for a stored analysis record (ticket #4).
 pub fn status_line(r: &AnalysisRecord) -> String {
     format!(
@@ -173,33 +206,35 @@ impl EventHandler for Handler {
         }
 
         // Normalize the URL once — every post gets a FRESH analysis
-        // (no caching by design: this is a personal bot).
+        // (no caching by design: this is a personal bot). Dedupe is an
+        // OPT-IN gate (DEDUPE_TTL_HOURS > 0) and never the default.
         let normalized = linkbot_core::normalize_url(&url);
         let cache_key = normalized.clone().unwrap_or_else(|| url.clone());
 
-        // Cooldown — persisted in SQLite so a restart doesn't reset it.
-        {
-            let now = deps.clock.now_unix();
-            let last = deps.store.cooldown_get(&channel_id).unwrap_or(None);
-            if !cooldown_passes(last, now, deps.config.cooldown_secs) {
+        // Dedupe first, then cooldown. Order matters: a dedupe-skipped
+        // message must NOT consume the channel cooldown (cooldown_set only
+        // runs on Proceed), so a legitimate follow-up post within
+        // COOLDOWN_SECS is not wrongly blocked.
+        let now = deps.clock.now_unix();
+        let dedupe_hit = match deps.store.dedupe_hit(&cache_key, now) {
+            Ok(true) => true,
+            Ok(false) => false,
+            Err(e) => {
+                tracing::warn!(?e, "dedupe check failed — proceeding");
+                false
+            }
+        };
+        let last = deps.store.cooldown_get(&channel_id).unwrap_or(None);
+        match gate_decision(dedupe_hit, last, now, deps.config.cooldown_secs) {
+            GateDecision::DedupeSkipped => {
+                tracing::info!(url = %cache_key, "dedupe hit — skipping re-analysis");
                 return;
             }
-            if let Err(e) = deps.store.cooldown_set(&channel_id, now) {
-                tracing::warn!(?e, "cooldown_set failed");
-            }
-        }
-
-        // Dedupe — same URL analyzed within CACHE_TTL_HOURS is skipped
-        // (the analysis itself is not cached; the gate just avoids re-runs).
-        {
-            let now = deps.clock.now_unix();
-            match deps.store.dedupe_hit(&cache_key, now) {
-                Ok(true) => {
-                    tracing::info!(url = %cache_key, "dedupe hit — skipping re-analysis");
-                    return;
+            GateDecision::CooldownBlocked => return,
+            GateDecision::Proceed => {
+                if let Err(e) = deps.store.cooldown_set(&channel_id, now) {
+                    tracing::warn!(?e, "cooldown_set failed");
                 }
-                Ok(false) => {}
-                Err(e) => tracing::warn!(?e, "dedupe check failed — proceeding"),
             }
         }
 
