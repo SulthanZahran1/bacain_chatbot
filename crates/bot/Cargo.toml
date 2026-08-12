@@ -17,3 +17,6 @@ url = { workspace = true }
 serenity = "0.12"
 regex = "1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[dev-dependencies]
+tempfile = "3.27.0"
