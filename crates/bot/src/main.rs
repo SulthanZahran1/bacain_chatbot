@@ -49,7 +49,6 @@ async fn main() {
         config: config.clone(),
         clock: clock::system(),
         store,
-        recent: tokio::sync::Mutex::new(Vec::new()),
     });
 
     let mut client = Client::builder(&config.discord_token, GatewayIntents::all())

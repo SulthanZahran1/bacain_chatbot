@@ -24,20 +24,9 @@ pub struct SharedDeps {
     pub config: Arc<Config>,
     pub clock: Clock,
     /// SQLite telemetry + dedupe + cooldown store (ticket #4). Replaces the
-    /// in-memory cooldown map — survives restarts.
+    /// in-memory cooldown map — survives restarts. Also the source of truth
+    /// for /status (recent analyses are read from the store, not memory).
     pub store: Arc<Store>,
-    /// Recent analyses for /status (url, bucket, window, corpus, model, ms).
-    pub recent: tokio::sync::Mutex<Vec<StatusEntry>>,
-}
-
-#[derive(Clone)]
-pub struct StatusEntry {
-    pub url: String,
-    pub bucket: String,
-    pub window: String,
-    pub corpus: usize,
-    pub model: String,
-    pub latency_ms: u64,
 }
 
 impl TypeMapKey for SharedDeps {
@@ -262,7 +251,8 @@ impl EventHandler for Handler {
             match result {
                 Ok(analysis) => {
                     let _ = ui::post_analysis(&ctx2, &msg2, &analysis).await;
-                    // Clear ⏳, set cooldown, record status.
+                    // Clear ⏳, then persist telemetry (ticket #4) — survives
+                    // restarts. /status reads from the store, not memory.
                     let _ = msg2
                         .delete_reaction(
                             &ctx2.http,
@@ -270,20 +260,6 @@ impl EventHandler for Handler {
                             ReactionType::Unicode("⏳".to_string()),
                         )
                         .await;
-                    let mut recent = deps2.recent.lock().await;
-                    recent.insert(
-                        0,
-                        StatusEntry {
-                            url: cache_key.clone(),
-                            bucket: analysis.meta.bucket.clone(),
-                            window: analysis.meta.window_used.clone(),
-                            corpus: analysis.meta.corpus_size,
-                            model: analysis.meta.llm_model.clone(),
-                            latency_ms: analysis.meta.latency_ms,
-                        },
-                    );
-                    recent.truncate(10);
-                    // Persist telemetry (ticket #4) — survives restarts.
                     let rec = AnalysisRecord {
                         id: 0,
                         url: cache_key.clone(),
