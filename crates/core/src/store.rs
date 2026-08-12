@@ -180,8 +180,15 @@ impl Store {
         Ok(id)
     }
 
-    /// Was `url` analyzed within the cache TTL? (dedupe gate)
+    /// Was `url` analyzed within the dedupe TTL? (dedupe gate)
+    ///
+    /// A TTL of 0 or less disables dedupe entirely — always `false`, so
+    /// every post gets a fresh analysis (the bot's original behavior).
+    /// Dedupe is opt-in via `DEDUPE_TTL_HOURS`.
     pub fn dedupe_hit(&self, url: &str, now: i64) -> Result<bool, StoreError> {
+        if self.cache_ttl_secs <= 0 {
+            return Ok(false);
+        }
         let conn = self.conn.lock().unwrap();
         let cutoff = now - self.cache_ttl_secs;
         let found: Option<i64> = conn
@@ -366,6 +373,22 @@ mod tests {
             .dedupe_hit("https://a.com/1", 1_000_000 + 24 * 3600 + 1)
             .unwrap());
         assert!(!s.dedupe_hit("https://never.com/x", 1_000_000).unwrap());
+    }
+
+    #[test]
+    fn dedupe_disabled_when_ttl_zero() {
+        // TTL 0 = dedupe disabled: even a just-recorded URL is never a hit,
+        // so every post gets a fresh analysis (the bot's original behavior).
+        let s = Store::open_in_memory(
+            std::sync::Arc::new(FakeClock::new(1_000_000)),
+            0, // disabled
+            30,
+        )
+        .unwrap();
+        s.record_analysis(&rec("https://a.com/1", 1_000_000))
+            .unwrap();
+        assert!(!s.dedupe_hit("https://a.com/1", 1_000_000).unwrap());
+        assert!(!s.dedupe_hit("https://a.com/1", 1_000_000 + 60).unwrap());
     }
 
     #[test]

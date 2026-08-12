@@ -29,8 +29,11 @@ pub struct Config {
     // --- SQLite store (ticket #4) ---
     /// Path to the SQLite telemetry/dedupe/cooldown database file.
     pub db_path: String,
-    /// Dedupe window: same URL analyzed within this many hours is a cache hit.
-    pub cache_ttl_hours: i64,
+    /// Dedupe window in hours: same URL analyzed within this many hours is
+    /// a dedupe hit. **0 = dedupe disabled** (the default) — every post gets
+    /// a fresh analysis, preserving the bot's original behavior. Opt in via
+    /// `DEDUPE_TTL_HOURS`.
+    pub dedupe_ttl_hours: i64,
     /// Retention: analyses older than this many days are pruned.
     pub retention_days: u64,
 
@@ -71,7 +74,7 @@ impl Default for Config {
             allow_all_channels: true,
             cooldown_secs: 60,
             db_path: "data/linkbot.db".into(),
-            cache_ttl_hours: 24,
+            dedupe_ttl_hours: 0, // opt-in: 0 = dedupe disabled (fresh analysis every post)
             retention_days: 30,
             policy: Policy::default(),
             corpus_token_budget: 60_000,
@@ -116,7 +119,7 @@ impl Config {
             analyze_channels: channels,
             cooldown_secs: parse_i64("COOLDOWN_SECS", 60),
             db_path: std::env::var("DB_PATH").unwrap_or_else(|_| "data/linkbot.db".to_string()),
-            cache_ttl_hours: parse_i64("CACHE_TTL_HOURS", 24),
+            dedupe_ttl_hours: parse_i64("DEDUPE_TTL_HOURS", 0),
             retention_days: parse_u64("RETENTION_DAYS", 30),
             policy: Policy::load_with_env_override(Some(&policy_path)),
             corpus_token_budget: parse_usize("CORPUS_TOKEN_BUDGET", 60_000),
@@ -173,8 +176,13 @@ fn parse_u64(key: &str, default: u64) -> u64 {
 mod tests {
     use super::*;
 
+    /// Serializes tests that mutate process env vars — `set_var`/`remove_var`
+    /// are process-global, so parallel tests touching the same var race.
+    static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
     #[test]
     fn config_parse_env_overrides() {
+        let _guard = ENV_LOCK.lock().unwrap();
         std::env::set_var("COOLDOWN_SECS", "120");
         std::env::set_var("REPLY_MODE", "split");
         let c = Config::from_env().unwrap();
@@ -192,25 +200,52 @@ mod tests {
 
     #[test]
     fn store_env_defaults_and_overrides() {
+        let _guard = ENV_LOCK.lock().unwrap();
         // Defaults when unset.
         std::env::remove_var("DB_PATH");
-        std::env::remove_var("CACHE_TTL_HOURS");
+        std::env::remove_var("DEDUPE_TTL_HOURS");
         std::env::remove_var("RETENTION_DAYS");
         let c = Config::from_env().unwrap();
         assert_eq!(c.db_path, "data/linkbot.db");
-        assert_eq!(c.cache_ttl_hours, 24);
+        // Dedupe is opt-in: default 0 = disabled (fresh analysis every post).
+        assert_eq!(c.dedupe_ttl_hours, 0);
         assert_eq!(c.retention_days, 30);
 
         // Overrides.
         std::env::set_var("DB_PATH", "/data/linkbot.db");
-        std::env::set_var("CACHE_TTL_HOURS", "48");
+        std::env::set_var("DEDUPE_TTL_HOURS", "48");
         std::env::set_var("RETENTION_DAYS", "90");
         let c = Config::from_env().unwrap();
         assert_eq!(c.db_path, "/data/linkbot.db");
-        assert_eq!(c.cache_ttl_hours, 48);
+        assert_eq!(c.dedupe_ttl_hours, 48);
         assert_eq!(c.retention_days, 90);
         std::env::remove_var("DB_PATH");
-        std::env::remove_var("CACHE_TTL_HOURS");
+        std::env::remove_var("DEDUPE_TTL_HOURS");
         std::env::remove_var("RETENTION_DAYS");
+    }
+
+    #[test]
+    fn dedupe_ttl_hours_defaults_to_disabled() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        // Unset → 0 → dedupe disabled (the bot's original behavior).
+        std::env::remove_var("DEDUPE_TTL_HOURS");
+        let c = Config::from_env().unwrap();
+        assert_eq!(c.dedupe_ttl_hours, 0);
+
+        // Explicit 0 → disabled.
+        std::env::set_var("DEDUPE_TTL_HOURS", "0");
+        let c = Config::from_env().unwrap();
+        assert_eq!(c.dedupe_ttl_hours, 0);
+
+        // Non-numeric → falls back to disabled.
+        std::env::set_var("DEDUPE_TTL_HOURS", "garbage");
+        let c = Config::from_env().unwrap();
+        assert_eq!(c.dedupe_ttl_hours, 0);
+
+        // Opt-in.
+        std::env::set_var("DEDUPE_TTL_HOURS", "24");
+        let c = Config::from_env().unwrap();
+        assert_eq!(c.dedupe_ttl_hours, 24);
+        std::env::remove_var("DEDUPE_TTL_HOURS");
     }
 }
