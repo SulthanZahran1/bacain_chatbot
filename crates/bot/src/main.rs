@@ -30,10 +30,11 @@ async fn main() {
     }
 
     // SQLite telemetry + dedupe + cooldown store (ticket #4).
+    // Dedupe is opt-in: DEDUPE_TTL_HOURS=0 (default) disables the gate.
     let store = match linkbot_core::Store::open(
         &config.db_path,
         clock::system(),
-        config.cache_ttl_hours * 3600,
+        config.dedupe_ttl_hours * 3600,
         config.retention_days,
     ) {
         Ok(s) => Arc::new(s),
