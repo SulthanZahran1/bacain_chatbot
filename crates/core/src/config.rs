@@ -26,6 +26,14 @@ pub struct Config {
     pub allow_all_channels: bool,
     pub cooldown_secs: i64,
 
+    // --- SQLite store (ticket #4) ---
+    /// Path to the SQLite telemetry/dedupe/cooldown database file.
+    pub db_path: String,
+    /// Dedupe window: same URL analyzed within this many hours is a cache hit.
+    pub cache_ttl_hours: i64,
+    /// Retention: analyses older than this many days are pruned.
+    pub retention_days: u64,
+
     // --- loop policy (env wins over optimized_policy.json) ---
     pub policy: Policy,
 
@@ -62,6 +70,9 @@ impl Default for Config {
             analyze_channels: vec![],
             allow_all_channels: true,
             cooldown_secs: 60,
+            db_path: "data/linkbot.db".into(),
+            cache_ttl_hours: 24,
+            retention_days: 30,
             policy: Policy::default(),
             corpus_token_budget: 60_000,
             reply_mode: ReplyMode::Thread,
@@ -104,6 +115,9 @@ impl Config {
             allow_all_channels: allow_all,
             analyze_channels: channels,
             cooldown_secs: parse_i64("COOLDOWN_SECS", 60),
+            db_path: std::env::var("DB_PATH").unwrap_or_else(|_| "data/linkbot.db".to_string()),
+            cache_ttl_hours: parse_i64("CACHE_TTL_HOURS", 24),
+            retention_days: parse_u64("RETENTION_DAYS", 30),
             policy: Policy::load_with_env_override(Some(&policy_path)),
             corpus_token_budget: parse_usize("CORPUS_TOKEN_BUDGET", 60_000),
             reply_mode: match get("REPLY_MODE").as_str() {
@@ -174,5 +188,29 @@ mod tests {
     fn channel_gate_allow_all() {
         let c = Config::default();
         assert!(c.channel_allowed("anything"));
+    }
+
+    #[test]
+    fn store_env_defaults_and_overrides() {
+        // Defaults when unset.
+        std::env::remove_var("DB_PATH");
+        std::env::remove_var("CACHE_TTL_HOURS");
+        std::env::remove_var("RETENTION_DAYS");
+        let c = Config::from_env().unwrap();
+        assert_eq!(c.db_path, "data/linkbot.db");
+        assert_eq!(c.cache_ttl_hours, 24);
+        assert_eq!(c.retention_days, 30);
+
+        // Overrides.
+        std::env::set_var("DB_PATH", "/data/linkbot.db");
+        std::env::set_var("CACHE_TTL_HOURS", "48");
+        std::env::set_var("RETENTION_DAYS", "90");
+        let c = Config::from_env().unwrap();
+        assert_eq!(c.db_path, "/data/linkbot.db");
+        assert_eq!(c.cache_ttl_hours, 48);
+        assert_eq!(c.retention_days, 90);
+        std::env::remove_var("DB_PATH");
+        std::env::remove_var("CACHE_TTL_HOURS");
+        std::env::remove_var("RETENTION_DAYS");
     }
 }

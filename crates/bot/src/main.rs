@@ -29,10 +29,25 @@ async fn main() {
         std::process::exit(1);
     }
 
+    // SQLite telemetry + dedupe + cooldown store (ticket #4).
+    let store = match linkbot_core::Store::open(
+        &config.db_path,
+        clock::system(),
+        config.cache_ttl_hours * 3600,
+        config.retention_days,
+    ) {
+        Ok(s) => Arc::new(s),
+        Err(e) => {
+            eprintln!("failed to open store at {}: {e}", config.db_path);
+            std::process::exit(1);
+        }
+    };
+    tracing::info!(db_path = %config.db_path, "sqlite store open");
+
     let shared = Arc::new(SharedDeps {
         config: config.clone(),
         clock: clock::system(),
-        cooldowns: tokio::sync::Mutex::new(std::collections::HashMap::new()),
+        store,
         recent: tokio::sync::Mutex::new(Vec::new()),
     });
 

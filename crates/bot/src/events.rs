@@ -4,6 +4,7 @@
 use linkbot_core::clock::Clock;
 use linkbot_core::config::Config;
 use linkbot_core::pipeline::{self, ChannelCtx};
+use linkbot_core::store::{AnalysisRecord, Store};
 use serenity::async_trait;
 use serenity::builder::{
     CreateCommand, CreateInteractionResponse, CreateInteractionResponseMessage,
@@ -22,8 +23,9 @@ use crate::ui;
 pub struct SharedDeps {
     pub config: Arc<Config>,
     pub clock: Clock,
-    /// In-flight analyses per channel (cooldown bookkeeping).
-    pub cooldowns: tokio::sync::Mutex<std::collections::HashMap<String, i64>>,
+    /// SQLite telemetry + dedupe + cooldown store (ticket #4). Replaces the
+    /// in-memory cooldown map — survives restarts.
+    pub store: Arc<Store>,
     /// Recent analyses for /status (url, bucket, window, corpus, model, ms).
     pub recent: tokio::sync::Mutex<Vec<StatusEntry>>,
 }
@@ -110,6 +112,14 @@ pub fn cooldown_passes(last: Option<i64>, now: i64, cooldown_secs: i64) -> bool 
     }
 }
 
+/// One /status line for a stored analysis record (ticket #4).
+pub fn status_line(r: &AnalysisRecord) -> String {
+    format!(
+        "- `{}` — bucket `{}`, window `{}`, corpus {}, {}ms, model {}",
+        r.url, r.bucket, r.window_used, r.corpus_size, r.latency_ms, r.llm_model
+    )
+}
+
 // ---------------------------------------------------------------------------
 // Event handler
 // ---------------------------------------------------------------------------
@@ -162,21 +172,36 @@ impl EventHandler for Handler {
             return;
         }
 
-        // Cooldown.
-        {
-            let mut cd = deps.cooldowns.lock().await;
-            let now = deps.clock.now_unix();
-            let last = cd.get(&channel_id).copied();
-            if !cooldown_passes(last, now, deps.config.cooldown_secs) {
-                return;
-            }
-            cd.insert(channel_id.clone(), now);
-        }
-
         // Normalize the URL once — every post gets a FRESH analysis
         // (no caching by design: this is a personal bot).
         let normalized = linkbot_core::normalize_url(&url);
         let cache_key = normalized.clone().unwrap_or_else(|| url.clone());
+
+        // Cooldown — persisted in SQLite so a restart doesn't reset it.
+        {
+            let now = deps.clock.now_unix();
+            let last = deps.store.cooldown_get(&channel_id).unwrap_or(None);
+            if !cooldown_passes(last, now, deps.config.cooldown_secs) {
+                return;
+            }
+            if let Err(e) = deps.store.cooldown_set(&channel_id, now) {
+                tracing::warn!(?e, "cooldown_set failed");
+            }
+        }
+
+        // Dedupe — same URL analyzed within CACHE_TTL_HOURS is skipped
+        // (the analysis itself is not cached; the gate just avoids re-runs).
+        {
+            let now = deps.clock.now_unix();
+            match deps.store.dedupe_hit(&cache_key, now) {
+                Ok(true) => {
+                    tracing::info!(url = %cache_key, "dedupe hit — skipping re-analysis");
+                    return;
+                }
+                Ok(false) => {}
+                Err(e) => tracing::warn!(?e, "dedupe check failed — proceeding"),
+            }
+        }
 
         // Trigger analysis on a task — never block the gateway loop.
         let ctx2 = ctx.clone();
@@ -223,6 +248,23 @@ impl EventHandler for Handler {
                         },
                     );
                     recent.truncate(10);
+                    // Persist telemetry (ticket #4) — survives restarts.
+                    let rec = AnalysisRecord {
+                        id: 0,
+                        url: cache_key.clone(),
+                        bucket: analysis.meta.bucket.clone(),
+                        window_used: analysis.meta.window_used.clone(),
+                        corpus_size: analysis.meta.corpus_size,
+                        rounds: analysis.meta.rounds,
+                        stop_reason: analysis.meta.stop_reason.clone(),
+                        latency_ms: analysis.meta.latency_ms,
+                        llm_model: analysis.meta.llm_model.clone(),
+                        citations_rejected: analysis.meta.citations_rejected,
+                        created_at: deps2.clock.now_unix(),
+                    };
+                    if let Err(e) = deps2.store.record_analysis(&rec) {
+                        tracing::warn!(?e, "record_analysis failed");
+                    }
                 }
                 Err(e) => {
                     // Log the REAL error — the user-facing message is a
@@ -294,16 +336,24 @@ impl EventHandler for Handler {
                 let _ = url;
             }
             "status" => {
-                let recent = deps.recent.lock().await;
+                // Read from the SQLite store — survives restarts (ticket #4).
                 let mut lines = vec!["**Recent analyses**".to_string()];
-                for e in recent.iter().take(5) {
-                    lines.push(format!(
-                        "- `{}` — bucket `{}`, window `{}`, corpus {}, {}ms, model {}",
-                        e.url, e.bucket, e.window, e.corpus, e.latency_ms, e.model
-                    ));
-                }
-                if lines.len() == 1 {
-                    lines.push("_none yet_".to_string());
+                match deps.store.recent_analyses(5) {
+                    Ok(records) => {
+                        for r in &records {
+                            lines.push(status_line(r));
+                        }
+                        if records.is_empty() {
+                            lines.push("_none yet_".to_string());
+                        }
+                        if let Ok(total) = deps.store.count_analyses() {
+                            lines.push(format!("**Total analyses stored:** {total}"));
+                        }
+                    }
+                    Err(e) => {
+                        tracing::warn!(?e, "recent_analyses failed");
+                        lines.push("_store unavailable_".to_string());
+                    }
                 }
                 let _ = cmd
                     .create_response(

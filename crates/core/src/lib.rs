@@ -19,12 +19,14 @@ pub mod pipeline;
 pub mod reader;
 pub mod scenario;
 pub mod searcher;
+pub mod store;
 pub mod synthesizer;
 
 pub use config::Config;
 pub use error::{PipelineError, UserMessage};
 pub use pipeline::{analyze, Analysis, AnalysisMeta, AnalysisRequest, ChannelCtx, Deps};
 pub use searcher::{FreshnessWindow, SearchHit, SearchProvider};
+pub use store::{AnalysisRecord, Store, StoreError};
 
 /// Normalized URL — canonical form used for dedupe, caching, and pool membership.
 pub fn normalize_url(raw: &str) -> Option<String> {

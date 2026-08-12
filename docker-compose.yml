@@ -5,7 +5,15 @@ services:
     env_file: .env
     environment:
       - OPTIMIZED_POLICY_JSON=/app/optimized_policy.json
+      - DB_PATH=/data/linkbot.db
     read_only: true
     tmpfs:
       - /tmp
+    volumes:
+      # Persistent SQLite telemetry/dedupe/cooldown store (ticket #4).
+      # The rootfs is read-only; only this volume is writable.
+      - linkbot-data:/data
+
+volumes:
+  linkbot-data:
 
