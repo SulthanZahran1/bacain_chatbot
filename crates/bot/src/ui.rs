@@ -173,6 +173,9 @@ pub async fn post_error(
     original: &Message,
     err: &PipelineError,
 ) -> serenity::Result<()> {
+    if linkbot_core::error::is_quota_exhausted(err) {
+        return Ok(());
+    }
     let msg = linkbot_core::error::user_message(err);
     original
         .channel_id

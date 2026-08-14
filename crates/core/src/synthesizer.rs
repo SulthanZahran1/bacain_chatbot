@@ -3,7 +3,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::error::PipelineError;
+use crate::error::{is_quota_exhausted_message, PipelineError};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Citation {
@@ -194,6 +194,13 @@ impl LlmClient {
             let status = resp.status();
             if status.is_success() {
                 break resp;
+            }
+            let body = resp.text().await.unwrap_or_default();
+            if status == reqwest::StatusCode::PAYMENT_REQUIRED || is_quota_exhausted_message(&body)
+            {
+                return Err(PipelineError::SynthesisFailed(format!(
+                    "llm quota exhausted ({status})"
+                )));
             }
             let transient = status == reqwest::StatusCode::TOO_MANY_REQUESTS
                 || status.is_server_error()

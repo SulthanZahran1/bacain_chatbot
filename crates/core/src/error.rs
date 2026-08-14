@@ -31,6 +31,37 @@ pub enum PipelineError {
     DeadlineExceeded,
 }
 
+/// Whether an upstream provider rejected the request because its quota or
+/// credits are exhausted. Keep this separate from ordinary rate limiting:
+/// transient 429s should still be retried/fallback-routed.
+pub fn is_quota_exhausted_message(reason: &str) -> bool {
+    let reason = reason.to_ascii_lowercase();
+    let quota_signal = reason.contains("insufficient_quota")
+        || (reason.contains("quota")
+            && ["exceed", "exhaust", "deplet", "insufficient", "billing"]
+                .iter()
+                .any(|signal| reason.contains(signal)))
+        || (reason.contains("credit")
+            && ["balance", "exhaust", "deplet", "insufficient", "out of"]
+                .iter()
+                .any(|signal| reason.contains(signal)))
+        || reason.contains("payment required");
+    quota_signal
+}
+
+/// Whether this failure should be kept out of Discord entirely. The failure
+/// is still logged for operators, but an exhausted provider quota is not an
+/// actionable response for the channel and should not produce the generic
+/// apology or a visible failure reaction.
+pub fn is_quota_exhausted(e: &PipelineError) -> bool {
+    match e {
+        PipelineError::SearchFailed(reason) | PipelineError::SynthesisFailed(reason) => {
+            is_quota_exhausted_message(reason)
+        }
+        _ => false,
+    }
+}
+
 /// The exact user-facing strings for each error — used by the bot crate and
 /// tested in §13. Kept in one place so UI and tests can't drift.
 pub fn user_message(e: &PipelineError) -> UserMessage {

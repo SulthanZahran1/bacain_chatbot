@@ -228,7 +228,6 @@ impl EventHandler for Handler {
                     // Log the REAL error — the user-facing message is a
                     // generic apology; diagnostics must survive in logs.
                     tracing::warn!(url = %cache_key, ?e, "analysis failed");
-                    let _ = ui::post_error(&ctx2, &msg2, &e).await;
                     let _ = msg2
                         .delete_reaction(
                             &ctx2.http,
@@ -236,9 +235,12 @@ impl EventHandler for Handler {
                             ReactionType::Unicode("⏳".to_string()),
                         )
                         .await;
-                    let _ = msg2
-                        .react(&ctx2.http, ReactionType::Unicode("❌".to_string()))
-                        .await;
+                    if !linkbot_core::error::is_quota_exhausted(&e) {
+                        let _ = ui::post_error(&ctx2, &msg2, &e).await;
+                        let _ = msg2
+                            .react(&ctx2.http, ReactionType::Unicode("❌".to_string()))
+                            .await;
+                    }
                 }
             }
         });
