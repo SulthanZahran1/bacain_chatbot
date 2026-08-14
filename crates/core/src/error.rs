@@ -25,6 +25,8 @@ pub enum PipelineError {
     SearchFailed(String),
     #[error("llm synthesis failed: {0}")]
     SynthesisFailed(String),
+    #[error("llm quota exhausted: {0}")]
+    QuotaExhausted(String),
     #[error("internal: {0}")]
     Internal(String),
     #[error("deadline exceeded")]
@@ -35,18 +37,24 @@ pub enum PipelineError {
 /// credits are exhausted. Keep this separate from ordinary rate limiting:
 /// transient 429s should still be retried/fallback-routed.
 pub fn is_quota_exhausted_message(reason: &str) -> bool {
-    let reason = reason.to_ascii_lowercase();
-    let quota_signal = reason.contains("insufficient_quota")
-        || (reason.contains("quota")
-            && ["exceed", "exhaust", "deplet", "insufficient", "billing"]
-                .iter()
-                .any(|signal| reason.contains(signal)))
-        || (reason.contains("credit")
-            && ["balance", "exhaust", "deplet", "insufficient", "out of"]
-                .iter()
-                .any(|signal| reason.contains(signal)))
-        || reason.contains("payment required");
-    quota_signal
+    let reason = reason.to_ascii_lowercase().replace(['_', '-'], " ");
+    let provider_resource =
+        reason.contains("quota") || reason.contains("credit") || reason.contains("billing");
+    let exhaustion_signal = [
+        "exceed",
+        "exhaust",
+        "deplet",
+        "insufficient",
+        "limit reached",
+        "hard limit",
+        "out of credits",
+        "no credits",
+        "zero balance",
+        "payment required",
+    ]
+    .iter()
+    .any(|signal| reason.contains(signal));
+    (provider_resource && exhaustion_signal) || reason.contains("payment required")
 }
 
 /// Whether this failure should be kept out of Discord entirely. The failure
@@ -55,6 +63,7 @@ pub fn is_quota_exhausted_message(reason: &str) -> bool {
 /// apology or a visible failure reaction.
 pub fn is_quota_exhausted(e: &PipelineError) -> bool {
     match e {
+        PipelineError::QuotaExhausted(_) => true,
         PipelineError::SearchFailed(reason) | PipelineError::SynthesisFailed(reason) => {
             is_quota_exhausted_message(reason)
         }
@@ -81,6 +90,9 @@ pub fn user_message(e: &PipelineError) -> UserMessage {
             UserMessage::error("Search backend is unhappy right now — try again shortly.")
         }
         SynthesisFailed(_) => UserMessage::error(
+            "The analysis engine failed to produce a response. Sorry about that!",
+        ),
+        QuotaExhausted(_) => UserMessage::error(
             "The analysis engine failed to produce a response. Sorry about that!",
         ),
         Internal(_) => UserMessage::error("Something went wrong internally."),

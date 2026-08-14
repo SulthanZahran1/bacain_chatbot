@@ -138,6 +138,52 @@ impl LlmClient {
         }
     }
 
+    /// Keep provider diagnostics useful without dumping an unbounded response
+    /// body or common bearer/API-key tokens into the log.
+    fn provider_error_detail(body: &str) -> String {
+        let detail = serde_json::from_str::<serde_json::Value>(body)
+            .ok()
+            .and_then(|value| {
+                let error = value.get("error").unwrap_or(&value);
+                match error {
+                    serde_json::Value::Object(fields) => {
+                        let parts: Vec<String> = ["type", "code", "message"]
+                            .iter()
+                            .filter_map(|key| {
+                                fields
+                                    .get(*key)
+                                    .and_then(serde_json::Value::as_str)
+                                    .map(|value| format!("{key}={value}"))
+                            })
+                            .collect();
+                        (!parts.is_empty()).then(|| parts.join(", "))
+                    }
+                    serde_json::Value::String(message) => Some(message.clone()),
+                    _ => None,
+                }
+            })
+            .unwrap_or_else(|| body.to_string());
+        let mut compact = String::new();
+        let mut redact_next = false;
+        for token in detail.split_whitespace() {
+            if !compact.is_empty() {
+                compact.push(' ');
+            }
+            let redacted = redact_next || token.starts_with("sk-") || token.starts_with("key-");
+            compact.push_str(if redacted { "[redacted]" } else { token });
+            redact_next = token.eq_ignore_ascii_case("bearer");
+        }
+        let mut bounded: String = compact.chars().take(512).collect();
+        if compact.chars().count() > 512 {
+            bounded.push('…');
+        }
+        if bounded.is_empty() {
+            "provider returned no error detail".into()
+        } else {
+            bounded
+        }
+    }
+
     /// One chat completion with `response_format: {"type": "json_object"}`.
     pub async fn chat_json(&self, system: &str, user: &str) -> Result<String, PipelineError> {
         #[derive(Serialize)]
@@ -198,8 +244,9 @@ impl LlmClient {
             let body = resp.text().await.unwrap_or_default();
             if status == reqwest::StatusCode::PAYMENT_REQUIRED || is_quota_exhausted_message(&body)
             {
-                return Err(PipelineError::SynthesisFailed(format!(
-                    "llm quota exhausted ({status})"
+                return Err(PipelineError::QuotaExhausted(format!(
+                    "llm http {status}: {}",
+                    Self::provider_error_detail(&body)
                 )));
             }
             let transient = status == reqwest::StatusCode::TOO_MANY_REQUESTS
@@ -300,6 +347,15 @@ impl FallbackLlm {
     pub fn new(primary: LlmClient, fallback: Option<LlmClient>) -> Self {
         FallbackLlm { primary, fallback }
     }
+
+    fn combine_failures(primary: PipelineError, fallback: PipelineError) -> PipelineError {
+        if crate::error::is_quota_exhausted(&primary) || crate::error::is_quota_exhausted(&fallback)
+        {
+            PipelineError::QuotaExhausted(format!("primary: {primary}; fallback: {fallback}"))
+        } else {
+            fallback
+        }
+    }
 }
 
 #[async_trait::async_trait]
@@ -312,7 +368,10 @@ impl Llm for FallbackLlm {
                     return Err(primary_err);
                 };
                 tracing::warn!(?primary_err, "primary LLM failed; using fallback");
-                fb.chat_json(system, user).await
+                match fb.chat_json(system, user).await {
+                    Ok(out) => Ok(out),
+                    Err(fallback_err) => Err(Self::combine_failures(primary_err, fallback_err)),
+                }
             }
         }
     }
@@ -329,7 +388,10 @@ impl Llm for FallbackLlm {
                     return Err(primary_err);
                 };
                 tracing::warn!(?primary_err, "primary synthesis failed; using fallback");
-                fb.synthesize(source, related).await
+                match fb.synthesize(source, related).await {
+                    Ok(out) => Ok(out),
+                    Err(fallback_err) => Err(Self::combine_failures(primary_err, fallback_err)),
+                }
             }
         }
     }
