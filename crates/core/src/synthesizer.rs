@@ -225,8 +225,8 @@ impl LlmClient {
             response_format: serde_json::json!({"type": "json_object"}),
         };
         // §10: transient LLM failures (transport / 429 / 5xx) get ONE retry
-        // with backoff before surfacing the user-facing apology. A single
-        // upstream hiccup shouldn't kill an otherwise-fine analysis.
+        // with backoff before surfacing a terminal pipeline error to the bot
+        // handler. The Discord layer logs terminal failures silently.
         let mut attempt = 0;
         let resp = loop {
             let resp = self

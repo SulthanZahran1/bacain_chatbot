@@ -135,7 +135,7 @@ pub async fn analyze(req: AnalysisRequest, deps: &Deps) -> Result<Analysis, Pipe
    - **Cooldown** — per-channel, default 60 s between analyses (`COOLDOWN_SECS`).
    - **Dedupe** — SQLite: same URL analyzed within `CACHE_TTL_HOURS` (default 24) → re-post cached analysis instead of re-running.
 3. **Trigger** — call `core::pipeline::analyze(...)` on a tokio task; **never block the gateway event loop**.
-4. **Placeholder (emoji, not literal)** — react to the original message with the `⏳` emoji (`Message::react`). **No text placeholder is ever posted.** The reaction state *is* the status: `⏳` = in progress; removed when done; replaced with `❌` on terminal failure.
+4. **Placeholder (emoji, not literal)** — react to the original message with the `⏳` emoji (`Message::react`). **No text placeholder is ever posted.** The reaction state *is* the status: `⏳` = in progress; removed when done. Terminal failures are logged and then fail silently in Discord: no apology message and no `❌` reaction.
 5. **Thread (replies the original message)** — create a thread anchored to the original message via `create_thread_from_message` (serenity 0.12 `ChannelId`): the original message becomes the thread's start message, so the thread is literally attached to — i.e. replies to — the message. Neutral name `📚 Link analysis` at creation; renamed to `📚 <article title>` once fetch returns the title (best effort). All analysis output posts into this thread.
 
 ### 4.2 Slash commands (serenity interactions)
@@ -256,7 +256,7 @@ CITATION RULES (hard constraints):
 ```
 
 - Temperature 0.2–0.4 (analytical, low drift); `max_tokens` ~2000.
-- Parse with `serde_json`; on parse failure → one repair retry ("return valid JSON only"); second failure → `PipelineError::SynthesisFailed` → user-facing apology.
+- Parse with `serde_json`; on parse failure → one repair retry ("return valid JSON only"); second failure → `PipelineError::SynthesisFailed` → log and fail silently in Discord.
 
 ### Stage 7 · Citation validation (`citations.rs`) — the "legit" guarantee
 
@@ -396,22 +396,22 @@ Failure modes covered: invented URLs (validator prunes — tested), hallucinated
 
 ## 10. Error handling & edge cases
 
-*Delivery:* all error messages are posted inside the analysis thread (or as a plain reply if thread creation failed); on terminal failure the `⏳` reaction is replaced with `❌`.
+*Delivery:* successful analysis output is posted inside the analysis thread. Terminal pipeline failures are logged, the `⏳` reaction is removed, and Discord receives no error message or `❌` reaction.
 
 | Case | Behavior |
 |---|---|
-| Fetch: `page_not_found` / `target_http_error` | "That link is dead (HTTP 404)" |
-| Fetch: `bot_blocked` | "The site blocks automated readers — can't retrieve it" |
-| Fetch: `empty_content` | "Page has no extractable content" |
-| Fetch: `timeout` / `target_unreachable` | Retry once, then "Couldn't reach it right now" |
+| Fetch: `page_not_found` / `target_http_error` | Log and fail silently |
+| Fetch: `bot_blocked` | Log and fail silently |
+| Fetch: `empty_content` | Log and fail silently |
+| Fetch: `timeout` / `target_unreachable` | Retry once, then log and fail silently |
 | Search: 0 results in window | Analyze source alone, say so, suggest widening |
 | Corpus: 0 related fetched | Same as above |
-| LLM: rate-limited / down | Retry once w/ backoff, then apology + offer raw corpus? No — keep it simple: apology |
-| LLM JSON parse failure ×2 | `SynthesisFailed` apology |
+| LLM: rate-limited / down | Retry once w/ backoff, then log and fail silently |
+| LLM JSON parse failure ×2 | `SynthesisFailed`, then log and fail silently |
 | Citation validator prunes all citations | One regeneration pass with reduced pool |
 | Message > 2000 chars | Split at paragraph boundary (thread mode mostly avoids) |
 | 429 from TinyFish | Semaphore + backoff + `Retry-After` |
-| Long pipeline > 15 min | Impossible by budget (§7); if hit, post partial + "timed out" |
+| Long pipeline > 15 min | Impossible by budget (§7); if hit, log and fail silently |
 | Bot in DMs | Gate: only guild channels (v1) |
 
 ---
@@ -466,7 +466,7 @@ Failure modes covered: invented URLs (validator prunes — tested), hallucinated
 - [ ] **Mutation ratio ≥ ~80%** — `cargo mutants` on `crates/core` reports a score of ≥ 0.80 (`caught / (caught + missed + timeout + no-cover)`, `unviable` excluded); the baseline (score before the test-writing pass) is documented in the PR
 
 **Core behavior (verified live in a test guild)**
-- [ ] Post a link → `⏳` reaction on the message → thread created that **replies to the original message** → full 3-part analysis (summary / deep analysis / critique) in that thread, complete in **< 60 s**; `⏳` removed when done (or `❌` on terminal failure)
+- [ ] Post a link → `⏳` reaction on the message → thread created that **replies to the original message** → full 3-part analysis (summary / deep analysis / critique) in that thread, complete in **< 60 s**; `⏳` removed when done or after a silently logged failure
 - [ ] An AI/LLM/agentic link → search log shows `window=30d` (recency rule fired)
 - [ ] A non-AI link from a `fast` domain → `window=7d`; from an unknown domain → `window=30d`; from `evergreen` → no date filter (domain-speed rule fired)
 - [ ] `⏱` footer in the output shows the window actually used
@@ -478,7 +478,7 @@ Failure modes covered: invented URLs (validator prunes — tested), hallucinated
 - [ ] Injection test: a fake/invented URL is **pruned**, never appears in output (unit test green)
 
 **Robustness**
-- [ ] Dead link, bot-blocked site, 0 search results, LLM outage → sane user-facing messages, no panics, bot stays connected
+- [ ] Dead link, bot-blocked site, 0 search results, LLM outage → silent terminal failures, no panics, bot stays connected
 - [ ] Same URL twice within 24 h → second post is the cached analysis
 - [ ] Long analysis splits correctly across the 2000-char limit in `split` mode
 - [ ] 30 consecutive varied links with no crash, no rate-limit lockout (TinyFish 429 handled)

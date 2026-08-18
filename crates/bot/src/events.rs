@@ -225,8 +225,10 @@ impl EventHandler for Handler {
                     recent.truncate(10);
                 }
                 Err(e) => {
-                    // Log the REAL error — the user-facing message is a
-                    // generic apology; diagnostics must survive in logs.
+                    // Keep diagnostics in logs, but fail silently in Discord:
+                    // no apology message and no ❌ reaction. Removing ⏳ is
+                    // enough to clear the in-progress state without adding
+                    // another visible failure signal.
                     tracing::warn!(url = %cache_key, ?e, "analysis failed");
                     let _ = msg2
                         .delete_reaction(
@@ -235,12 +237,6 @@ impl EventHandler for Handler {
                             ReactionType::Unicode("⏳".to_string()),
                         )
                         .await;
-                    if !linkbot_core::error::is_quota_exhausted(&e) {
-                        let _ = ui::post_error(&ctx2, &msg2, &e).await;
-                        let _ = msg2
-                            .react(&ctx2.http, ReactionType::Unicode("❌".to_string()))
-                            .await;
-                    }
                 }
             }
         });

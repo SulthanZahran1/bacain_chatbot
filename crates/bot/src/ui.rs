@@ -1,6 +1,5 @@
 //! Rendering (§4.3): thread-per-analysis, 2000-char split, embeds, footers.
 
-use linkbot_core::error::PipelineError;
 use linkbot_core::pipeline::Analysis;
 use serenity::builder::{CreateEmbed, CreateEmbedFooter, CreateMessage, CreateThread};
 use serenity::client::Context;
@@ -164,26 +163,6 @@ pub async fn post_analysis(
     let edit = serenity::builder::EditThread::new().name(format!("📚 {}", analysis.title));
     let _ = thread_id.edit_thread(&ctx.http, edit).await;
 
-    Ok(())
-}
-
-/// Post a user-facing error (§10 delivery rules).
-pub async fn post_error(
-    ctx: &Context,
-    original: &Message,
-    err: &PipelineError,
-) -> serenity::Result<()> {
-    if linkbot_core::error::is_quota_exhausted(err) {
-        return Ok(());
-    }
-    let msg = linkbot_core::error::user_message(err);
-    original
-        .channel_id
-        .send_message(
-            &ctx.http,
-            CreateMessage::new().content(msg.text().to_string()),
-        )
-        .await?;
     Ok(())
 }
 
