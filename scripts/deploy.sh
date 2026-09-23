@@ -13,6 +13,23 @@ git reset --hard origin/main
 echo "==> checking .env present"
 [ -f .env ] || { echo "FATAL: .env missing — refusing to deploy"; exit 1; }
 
+echo "==> ensuring the SQLite volume is writable by the container user (uid 10001)"
+# The rootfs is read-only and the bot runs as the unprivileged `linkbot` user;
+# a FRESH named volume is created root-owned, so the very first start fails with
+# "failed to open store at /data/linkbot.db: unable to open database file" and
+# crash-loops (seen live 2026-09-23 on the first deploy that carried the SQLite
+# store). Chown it from a throwaway root container before starting the bot.
+VOLUME="$(docker compose config --format json 2>/dev/null \
+  | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(iter(d.get("volumes",{})), ""))' 2>/dev/null || true)"
+if [ -n "$VOLUME" ]; then
+  PROJECT="$(basename "$PWD")"
+  FULL="${PROJECT}_${VOLUME}"
+  docker volume create "$FULL" >/dev/null 2>&1 || true
+  docker run --rm -v "$FULL":/data alpine sh -c 'chown 10001:10001 /data && chmod 755 /data' >/dev/null 2>&1 \
+    && echo "    ok: $FULL" \
+    || echo "    WARN: could not repair $FULL (continuing)"
+fi
+
 echo "==> rebuilding + restarting container"
 docker compose up -d --build
 
