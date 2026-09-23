@@ -11,7 +11,7 @@ citation mechanically verified against the actual fetched corpus**.
 Built to spec (`goal.md`): Rust workspace, TinyFish Fetch (the **only**
 URL-retrieval path — the bot never fetches raw URLs itself, SSRF-safe),
 Exa search (pooled keys, TinyFish Search fallback), any OpenAI-compatible LLM
-(default: Ollama Cloud `deepseek-v4-flash:0731`).
+(default: Ollama Cloud `deepseek-v4.1-flash`).
 
 ## Provider resilience
 

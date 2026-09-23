@@ -202,7 +202,7 @@ fn config_defaults() {
     assert!(c.allow_all_channels);
     assert_eq!(c.reply_mode, ReplyMode::Thread);
     assert_eq!(c.llm_api_base, "https://ollama.com/v1");
-    assert_eq!(c.llm_model, "deepseek-v4-flash:0731");
+    assert_eq!(c.llm_model, "deepseek-v4.1-flash");
     assert_eq!(c.corpus_token_budget, 60_000);
 }
 
@@ -238,7 +238,7 @@ fn config_from_env_full() {
     std::env::set_var("EXA_API_KEY", "exa");
     std::env::set_var("LLM_API_BASE", "https://ollama.com/v1");
     std::env::set_var("LLM_API_KEY", "llm");
-    std::env::set_var("LLM_MODEL", "deepseek-v4-flash:0731");
+    std::env::set_var("LLM_MODEL", "deepseek-v4.1-flash");
     std::env::set_var("ANALYZE_CHANNELS", "111, 222 ,333");
     std::env::set_var("COOLDOWN_SECS", "120");
     std::env::set_var("CORPUS_TOKEN_BUDGET", "12345");

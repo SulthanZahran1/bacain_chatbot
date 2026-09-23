@@ -291,7 +291,7 @@ fn pipeline_meta_reports_rounds_and_latency() {
     let (a, _) = run_mini(&scn, Policy::default());
     assert!(a.meta.rounds >= 1);
     assert!(a.meta.latency_ms < 60_000);
-    assert_eq!(a.meta.llm_model, "deepseek-v4-flash:0731");
+    assert_eq!(a.meta.llm_model, "deepseek-v4.1-flash");
 }
 
 #[test]

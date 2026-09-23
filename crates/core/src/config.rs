@@ -73,7 +73,7 @@ impl Default for Config {
             exa_api_keys: Vec::new(),
             llm_api_base: "https://ollama.com/v1".into(),
             llm_api_key: String::new(),
-            llm_model: "deepseek-v4-flash:0731".into(),
+            llm_model: "deepseek-v4.1-flash".into(),
             llm_fallback_base: String::new(),
             llm_fallback_key: String::new(),
             llm_fallback_model: String::new(),
