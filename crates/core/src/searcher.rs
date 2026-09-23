@@ -1,10 +1,24 @@
-//! Search providers behind one trait: Exa (default) and TinyFish Search
-//! (fallback). Mock implementation lives in `mock_providers.rs`.
+//! Search providers behind one trait: Exa (default, multi-key pool) and
+//! TinyFish Search (fallback). Mock implementation lives in `mock_providers.rs`.
+//!
+//! The Exa pool mirrors the local Hermes `exa-pool` convention: several keys
+//! rotate on billing/quota (402) or rate-limit (429) errors, and a key that
+//! answered with one is parked for `KEY_COOLDOWN_SECS` instead of being
+//! retried on every post. `FallbackSearchProvider` then carries the call to
+//! TinyFish Search when the pool is exhausted or Exa fails outright.
+
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 use crate::error::PipelineError;
+
+/// How long a key that answered with a billing/quota or rate-limit error is
+/// parked before it may be tried again. Mirrors the Hermes `exa-pool` plugin's
+/// one-hour cooldown.
+pub const KEY_COOLDOWN_SECS: i64 = 3600;
 
 /// Freshness window expressed for each backend:
 /// - Exa / TinyFish: `recency_minutes` (None = no date filter)
@@ -72,14 +86,54 @@ pub trait SearchProvider: Send + Sync {
     ) -> Result<Vec<SearchHit>, PipelineError>;
 }
 
+/// Whether a non-2xx Exa answer means "this key is unusable right now"
+/// (billing/quota exhaustion or rate limiting) rather than "this request is
+/// wrong". A wrong request fails identically on every key, so only the former
+/// parks a key and rotates.
+fn is_key_exhausted(status: reqwest::StatusCode, body: &str) -> bool {
+    if status == reqwest::StatusCode::PAYMENT_REQUIRED
+        || status == reqwest::StatusCode::TOO_MANY_REQUESTS
+    {
+        return true;
+    }
+    let body = body.to_ascii_lowercase().replace(['_', '-'], " ");
+    let resource = ["credit", "quota", "billing", "payment"]
+        .iter()
+        .any(|m| body.contains(m));
+    let signal = [
+        "exceed",
+        "exhaust",
+        "insufficient",
+        "limit reached",
+        "out of credits",
+        "no credits",
+        "zero balance",
+        "payment required",
+        "too many requests",
+        "rate limit",
+    ]
+    .iter()
+    .any(|m| body.contains(m));
+    // A bare `rate limit` / `too many requests` phrase is enough on its own.
+    resource && signal
+        || body.contains("payment required")
+        || body.contains("too many requests")
+        || body.contains("rate limit")
+}
+
 // ---------------------------------------------------------------------------
-// Exa — default implementation (POST https://api.exa.ai/search)
+// Exa — default implementation (POST {base}, multi-key pool)
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone)]
 pub struct ExaSearchProvider {
     client: reqwest::Client,
-    api_key: String,
+    base_url: String,
+    /// Ordered key pool: first key is the preferred one. Empty = unconfigured.
+    api_keys: Vec<String>,
+    /// key → unix ts when it may be retried. Shared across clones so every
+    /// concurrent query sees the same pool state.
+    cooldowns: Arc<Mutex<HashMap<String, i64>>>,
 }
 
 #[derive(Serialize)]
@@ -113,25 +167,82 @@ struct ExaResult {
     published_date: Option<String>,
 }
 
+/// Outcome of one attempt against one key.
+enum KeyOutcome {
+    /// Billing/quota or rate limit — park this key and try the next one.
+    Park(String),
+    /// Anything else — a malformed request fails on every key, so surface it.
+    Fatal(PipelineError),
+}
+
 impl ExaSearchProvider {
+    /// Single-key provider (back-compat).
     pub fn new(api_key: String) -> Self {
+        Self::new_with_keys(vec![api_key])
+    }
+
+    /// Pooled provider; slot order is priority order.
+    pub fn new_with_keys(api_keys: Vec<String>) -> Self {
+        Self::with_base("https://api.exa.ai/search".to_string(), api_keys)
+    }
+
+    /// Pooled provider pointed at another base URL (tests, probes).
+    pub fn with_base(base_url: String, api_keys: Vec<String>) -> Self {
+        let api_keys: Vec<String> = api_keys
+            .into_iter()
+            .map(|k| k.trim().to_string())
+            .filter(|k| !k.is_empty())
+            .collect();
         ExaSearchProvider {
             client: reqwest::Client::builder()
                 .timeout(std::time::Duration::from_secs(20))
                 .build()
                 .expect("reqwest client"),
-            api_key,
+            base_url,
+            api_keys,
+            cooldowns: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
-    async fn run(
+    pub fn key_count(&self) -> usize {
+        self.api_keys.len()
+    }
+
+    /// Keys that are not parked at `now_unix`, in priority order.
+    fn healthy_keys(&self, now_unix: i64) -> Vec<String> {
+        let cooldowns = self.cooldowns.lock().expect("exa cooldown lock");
+        self.api_keys
+            .iter()
+            .filter(|k| {
+                cooldowns
+                    .get(*k)
+                    .map(|until| *until <= now_unix)
+                    .unwrap_or(true)
+            })
+            .cloned()
+            .collect()
+    }
+
+    fn park_key(&self, key: &str, now_unix: i64) {
+        let mut cooldowns = self.cooldowns.lock().expect("exa cooldown lock");
+        cooldowns.insert(key.to_string(), now_unix + KEY_COOLDOWN_SECS);
+    }
+
+    #[cfg(test)]
+    fn parked_key_count(&self) -> usize {
+        self.cooldowns.lock().expect("exa cooldown lock").len()
+    }
+
+    /// One attempt against one key.
+    async fn attempt(
         &self,
+        key: &str,
         query: String,
         window: FreshnessWindow,
         k: usize,
         now_unix: i64,
         exclude_domains: Option<Vec<String>>,
-    ) -> Result<Vec<SearchHit>, PipelineError> {
+    ) -> Result<Vec<SearchHit>, KeyOutcome> {
         let category = matches!(window.bucket, "fast" | "breaking").then(|| "news".to_string());
         let req = ExaRequest {
             query,
@@ -145,23 +256,30 @@ impl ExaSearchProvider {
         };
         let resp = self
             .client
-            .post("https://api.exa.ai/search")
-            .header("x-api-key", &self.api_key)
+            .post(&self.base_url)
+            .header("x-api-key", key)
             .json(&req)
             .send()
             .await
-            .map_err(|e| PipelineError::SearchFailed(format!("exa transport: {e}")))?;
+            .map_err(|e| {
+                KeyOutcome::Fatal(PipelineError::SearchFailed(format!("exa transport: {e}")))
+            })?;
         let status = resp.status();
         if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
-            return Err(PipelineError::SearchFailed("exa 429 (rate limited)".into()));
+            return Err(KeyOutcome::Park("exa 429 (rate limited)".into()));
         }
         if !status.is_success() {
-            return Err(PipelineError::SearchFailed(format!("exa http {status}")));
+            let body = resp.text().await.unwrap_or_default();
+            if is_key_exhausted(status, &body) {
+                return Err(KeyOutcome::Park(format!("exa http {status}")));
+            }
+            return Err(KeyOutcome::Fatal(PipelineError::SearchFailed(format!(
+                "exa http {status}"
+            ))));
         }
-        let body: ExaResponse = resp
-            .json()
-            .await
-            .map_err(|e| PipelineError::SearchFailed(format!("exa decode: {e}")))?;
+        let body: ExaResponse = resp.json().await.map_err(|e| {
+            KeyOutcome::Fatal(PipelineError::SearchFailed(format!("exa decode: {e}")))
+        })?;
         Ok(body
             .results
             .into_iter()
@@ -172,6 +290,57 @@ impl ExaSearchProvider {
                 published_date: r.published_date,
             })
             .collect())
+    }
+
+    async fn run(
+        &self,
+        query: String,
+        window: FreshnessWindow,
+        k: usize,
+        now_unix: i64,
+        exclude_domains: Option<Vec<String>>,
+    ) -> Result<Vec<SearchHit>, PipelineError> {
+        if self.api_keys.is_empty() {
+            return Err(PipelineError::SearchFailed(
+                "exa: no api key configured".into(),
+            ));
+        }
+        let healthy = self.healthy_keys(now_unix);
+        if healthy.is_empty() {
+            return Err(PipelineError::SearchFailed(format!(
+                "exa pool exhausted: all {} key(s) cooling after a credit/rate-limit error",
+                self.api_keys.len()
+            )));
+        }
+        let mut parked = 0usize;
+        let mut last: Option<String> = None;
+        for key in healthy {
+            match self
+                .attempt(
+                    &key,
+                    query.clone(),
+                    window,
+                    k,
+                    now_unix,
+                    exclude_domains.clone(),
+                )
+                .await
+            {
+                Ok(hits) => return Ok(hits),
+                Err(KeyOutcome::Park(reason)) => {
+                    tracing::warn!(reason = %reason, "exa key parked; rotating to the next key");
+                    self.park_key(&key, now_unix);
+                    parked += 1;
+                    last = Some(reason);
+                }
+                Err(KeyOutcome::Fatal(e)) => return Err(e),
+            }
+        }
+        Err(PipelineError::SearchFailed(format!(
+            "exa pool exhausted: all {} healthy key(s) hit a credit/rate-limit error ({})",
+            parked,
+            last.unwrap_or_else(|| "unknown".into())
+        )))
     }
 }
 
@@ -242,22 +411,14 @@ impl SearchProvider for ExaSearchProvider {
 
 // ---------------------------------------------------------------------------
 // TinyFish Search — fallback implementation
+// (GET https://api.search.tinyfish.ai?query=… with an X-API-Key header)
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Clone)]
 pub struct TinyFishSearchProvider {
     client: reqwest::Client,
+    base_url: String,
     api_key: String,
-}
-
-#[derive(Serialize)]
-struct TfSearchRequest {
-    query: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    recency_minutes: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    domain_type: Option<String>,
-    num_results: usize,
 }
 
 #[derive(Deserialize)]
@@ -265,21 +426,34 @@ struct TfSearchResponse {
     results: Vec<TfSearchResult>,
 }
 
+/// The API's result shape: `date` is free-form ("Jul 30, 2026" / "4 days ago").
 #[derive(Deserialize)]
 struct TfSearchResult {
     url: String,
+    #[serde(default)]
     title: Option<String>,
+    #[serde(default)]
     snippet: Option<String>,
-    published_date: Option<String>,
+    #[serde(default)]
+    date: Option<String>,
+    #[serde(default)]
+    #[allow(dead_code)]
+    site_name: Option<String>,
 }
 
 impl TinyFishSearchProvider {
     pub fn new(api_key: String) -> Self {
+        Self::with_base("https://api.search.tinyfish.ai".to_string(), api_key)
+    }
+
+    /// Provider pointed at another base URL (tests, probes).
+    pub fn with_base(base_url: String, api_key: String) -> Self {
         TinyFishSearchProvider {
             client: reqwest::Client::builder()
                 .timeout(std::time::Duration::from_secs(20))
                 .build()
                 .expect("reqwest client"),
+            base_url,
             api_key,
         }
     }
@@ -289,18 +463,27 @@ impl TinyFishSearchProvider {
         query: String,
         window: FreshnessWindow,
         k: usize,
+        exclude_domains: Option<Vec<String>>,
     ) -> Result<Vec<SearchHit>, PipelineError> {
-        let req = TfSearchRequest {
-            query,
-            recency_minutes: window.recency_minutes,
-            domain_type: matches!(window.bucket, "fast" | "breaking").then(|| "news".to_string()),
-            num_results: k,
-        };
+        // The Search API is a GET endpoint with query parameters; there is no
+        // `num_results` parameter, so `k` is applied to the returned page.
+        let mut params: Vec<(&str, String)> = vec![("query", query)];
+        if let Some(minutes) = window.recency_minutes {
+            params.push(("recency_minutes", minutes.to_string()));
+        }
+        if matches!(window.bucket, "fast" | "breaking") {
+            params.push(("domain_type", "news".to_string()));
+        }
+        if let Some(domains) = exclude_domains {
+            if !domains.is_empty() {
+                params.push(("exclude_domains", domains.join(",")));
+            }
+        }
         let resp = self
             .client
-            .post("https://api.search.tinyfish.ai/search")
+            .get(&self.base_url)
             .header("X-API-Key", &self.api_key)
-            .json(&req)
+            .query(&params)
             .send()
             .await
             .map_err(|e| PipelineError::SearchFailed(format!("tinyfish search transport: {e}")))?;
@@ -317,11 +500,12 @@ impl TinyFishSearchProvider {
         Ok(body
             .results
             .into_iter()
+            .take(k)
             .map(|r| SearchHit {
                 url: r.url,
                 title: r.title.unwrap_or_default(),
                 snippet: r.snippet.unwrap_or_default(),
-                published_date: r.published_date,
+                published_date: r.date,
             })
             .collect())
     }
@@ -341,7 +525,7 @@ impl SearchProvider for TinyFishSearchProvider {
         for q in queries {
             let prov = self.clone();
             let q = q.clone();
-            set.spawn(async move { prov.run(q, window, k).await });
+            set.spawn(async move { prov.run(q, window, k, None).await });
         }
         let mut all = Vec::new();
         let mut seen = std::collections::HashSet::new();
@@ -382,7 +566,63 @@ impl SearchProvider for TinyFishSearchProvider {
         k: usize,
         _now_unix: i64,
     ) -> Result<Vec<SearchHit>, PipelineError> {
-        self.run(format!("find similar to {url}"), window, k).await
+        self.run(format!("find similar to {url}"), window, k, None)
+            .await
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Fallback chain — a second search backend behind the primary
+// ---------------------------------------------------------------------------
+
+/// Runs the primary search provider and, when it FAILS (pool exhausted, HTTP
+/// error, transport error, decode error), retries the whole call on the
+/// fallback. An empty-but-successful result is a real answer (sparse topic)
+/// and is returned as-is — it is not an error to paper over.
+#[derive(Clone)]
+pub struct FallbackSearchProvider {
+    primary: Arc<dyn SearchProvider>,
+    fallback: Arc<dyn SearchProvider>,
+}
+
+impl FallbackSearchProvider {
+    pub fn new(primary: Arc<dyn SearchProvider>, fallback: Arc<dyn SearchProvider>) -> Self {
+        FallbackSearchProvider { primary, fallback }
+    }
+}
+
+#[async_trait]
+impl SearchProvider for FallbackSearchProvider {
+    async fn search(
+        &self,
+        queries: &[String],
+        window: FreshnessWindow,
+        k: usize,
+        now_unix: i64,
+    ) -> Result<Vec<SearchHit>, PipelineError> {
+        match self.primary.search(queries, window, k, now_unix).await {
+            Ok(hits) => Ok(hits),
+            Err(primary_err) => {
+                tracing::warn!(?primary_err, "primary search failed; using fallback");
+                self.fallback.search(queries, window, k, now_unix).await
+            }
+        }
+    }
+
+    async fn find_similar(
+        &self,
+        url: &str,
+        window: FreshnessWindow,
+        k: usize,
+        now_unix: i64,
+    ) -> Result<Vec<SearchHit>, PipelineError> {
+        match self.primary.find_similar(url, window, k, now_unix).await {
+            Ok(hits) => Ok(hits),
+            Err(primary_err) => {
+                tracing::warn!(?primary_err, "primary find_similar failed; using fallback");
+                self.fallback.find_similar(url, window, k, now_unix).await
+            }
+        }
     }
 }
 
@@ -417,5 +657,42 @@ mod tests {
         assert_eq!(epoch_day_to_iso(0), "1970-01-01");
         assert_eq!(epoch_day_to_iso(19_723), "2024-01-01");
         assert_eq!(epoch_day_to_iso(20_662), "2026-07-28");
+    }
+
+    #[test]
+    fn empty_key_slots_are_dropped() {
+        let p = ExaSearchProvider::new_with_keys(vec!["".into(), "  ".into(), "k1".into()]);
+        assert_eq!(p.key_count(), 1);
+    }
+
+    #[test]
+    fn exhausted_status_recognition() {
+        let mut body = String::new();
+        assert!(is_key_exhausted(
+            reqwest::StatusCode::TOO_MANY_REQUESTS,
+            &body
+        ));
+        assert!(is_key_exhausted(
+            reqwest::StatusCode::PAYMENT_REQUIRED,
+            &body
+        ));
+        body = r#"{"error":"You have exceeded your credits limit. Please top up"}"#.to_string();
+        assert!(is_key_exhausted(reqwest::StatusCode::BAD_REQUEST, &body));
+        assert!(!is_key_exhausted(
+            reqwest::StatusCode::BAD_REQUEST,
+            r#"{"error":"invalid numResults"}"#
+        ));
+    }
+
+    #[test]
+    fn all_keys_cooling_park_and_recover() {
+        let p = ExaSearchProvider::new_with_keys(vec!["a".into(), "b".into()]);
+        let now = 1_785_484_800;
+        assert_eq!(p.healthy_keys(now).len(), 2);
+        p.park_key("a", now);
+        assert_eq!(p.healthy_keys(now), vec!["b".to_string()]);
+        assert_eq!(p.parked_key_count(), 1);
+        // After the cooldown the key returns to the pool.
+        assert_eq!(p.healthy_keys(now + KEY_COOLDOWN_SECS).len(), 2);
     }
 }

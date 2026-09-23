@@ -91,11 +91,17 @@ pub fn window_footer(analysis: &Analysis) -> String {
 }
 
 /// Post the full analysis into a thread anchored to the original message.
+///
+/// Returns the display-layer result. `serenity::Error` is ~136 bytes, so the
+/// boxed form keeps this async fn's future small — clippy's
+/// `result_large_err` (Rust 1.98, `-D warnings` in CI) rejects the bare
+/// `serenity::Result`. The caller ignores the value (`let _ =`), so the
+/// boxed error costs nothing at the call site.
 pub async fn post_analysis(
     ctx: &Context,
     original: &Message,
     analysis: &Analysis,
-) -> serenity::Result<()> {
+) -> Result<(), Box<serenity::Error>> {
     // Create thread anchored to the original message (it becomes the
     // thread's start message → the thread "replies" to the message).
     let mut thread_builder = CreateThread::new("📚 Link analysis");

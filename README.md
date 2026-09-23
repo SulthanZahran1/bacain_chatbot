@@ -10,8 +10,31 @@ citation mechanically verified against the actual fetched corpus**.
 
 Built to spec (`goal.md`): Rust workspace, TinyFish Fetch (the **only**
 URL-retrieval path — the bot never fetches raw URLs itself, SSRF-safe),
-TinyFish Search fallback + Exa search, any OpenAI-compatible LLM
+Exa search (pooled keys, TinyFish Search fallback), any OpenAI-compatible LLM
 (default: Ollama Cloud `deepseek-v4-flash:0731`).
+
+## Provider resilience
+
+Three independent failure surfaces, each with a fallback so a single dead
+credential or a single odd model answer cannot take the bot down:
+
+| Layer | Primary | On failure |
+|---|---|---|
+| Search | Exa, rotating across an ordered **key pool** | TinyFish Search (`FallbackSearchProvider`) |
+| Fetch | TinyFish Fetch | — (only retrieval path by design) |
+| LLM | Ollama Cloud | secondary OpenAI-compatible provider (`LLM_FALLBACK_*`) |
+
+**Exa key pool** (`EXA_API_KEY` may be a comma-separated list, then
+`EXA_API_KEY_2` .. `EXA_API_KEY_9`): the first healthy key is used, and a key
+that answers with a billing/quota (402) or rate-limit (429) error is parked
+for an hour while the next slot takes over. A malformed request (400) does not
+rotate — it would fail on every key, and rotating would only burn quota.
+Mirrors the Hermes `exa-pool` plugin convention.
+
+**Synthesis shape tolerance**: models occasionally answer a declared string
+field with an array of bullets (exactly what the prompt asks for). That is
+coerced (array → newline-joined text) before deserialization, instead of
+hard-failing the analysis with `invalid type: sequence, expected a string`.
 
 ## Architecture
 
@@ -29,8 +52,8 @@ crates/
    disambiguation (non-fatal on failure). AI topic → **30-day window override**.
 3. **Window**: domain-speed buckets (breaking 3d / fast 7d / standard 30d /
    slow+regulatory 90d / evergreen ∞), overridable via `DOMAIN_SPEED_JSON`.
-4. **Search loop**: seed queries from source → search (Exa default, TinyFish
-   fallback) → batch-fetch hits → coverage assessment (distinct angles
+4. **Search loop**: seed queries from source → search (pooled Exa, TinyFish
+   Search fallback) → batch-fetch hits → coverage assessment (distinct angles
    covered / ground truth) → expand with new angles until target, budget,
    diminishing returns, max rounds, or the 60 s deadline.
 5. **Read**: token budget (default 60k), source gets 50 %, head+tail trimming.

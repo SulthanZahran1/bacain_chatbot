@@ -398,8 +398,20 @@ impl SharedDeps {
         let fetcher = Arc::new(linkbot_core::fetcher::TinyFishFetcher::new(
             self.config.tinyfish_api_key.clone(),
         ));
+        // Search: pooled Exa (rotates on 402/429) → TinyFish Search fallback.
+        let exa_keys = if self.config.exa_api_keys.is_empty() {
+            vec![self.config.exa_api_key.clone()]
+        } else {
+            self.config.exa_api_keys.clone()
+        };
+        let exa = Arc::new(linkbot_core::searcher::ExaSearchProvider::new_with_keys(
+            exa_keys,
+        ));
+        let tinyfish = Arc::new(linkbot_core::searcher::TinyFishSearchProvider::new(
+            self.config.tinyfish_api_key.clone(),
+        ));
         let searcher: Arc<dyn linkbot_core::searcher::SearchProvider> = Arc::new(
-            linkbot_core::searcher::ExaSearchProvider::new(self.config.exa_api_key.clone()),
+            linkbot_core::searcher::FallbackSearchProvider::new(exa, tinyfish),
         );
         let llm = Arc::new(linkbot_core::synthesizer::FallbackLlm::new(
             linkbot_core::synthesizer::LlmClient::new(

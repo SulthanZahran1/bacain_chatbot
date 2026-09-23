@@ -21,12 +21,22 @@ async fn main() {
         .unwrap_or_else(|| "probe".to_string());
 
     let config = Arc::new(Config::from_env().expect("config from env"));
+    let exa_keys = if config.exa_api_keys.is_empty() {
+        vec![config.exa_api_key.clone()]
+    } else {
+        config.exa_api_keys.clone()
+    };
     let deps = Deps {
         fetcher: Arc::new(linkbot_core::fetcher::TinyFishFetcher::new(
             config.tinyfish_api_key.clone(),
         )),
-        searcher: Arc::new(linkbot_core::searcher::ExaSearchProvider::new(
-            config.exa_api_key.clone(),
+        searcher: Arc::new(linkbot_core::searcher::FallbackSearchProvider::new(
+            Arc::new(linkbot_core::searcher::ExaSearchProvider::new_with_keys(
+                exa_keys,
+            )),
+            Arc::new(linkbot_core::searcher::TinyFishSearchProvider::new(
+                config.tinyfish_api_key.clone(),
+            )),
         )),
         llm: Arc::new(linkbot_core::synthesizer::LlmClient::new(
             config.llm_api_base.clone(),

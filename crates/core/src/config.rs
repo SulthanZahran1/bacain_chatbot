@@ -11,6 +11,12 @@ pub struct Config {
     pub discord_token: String,
     pub tinyfish_api_key: String,
     pub exa_api_key: String,
+    /// Ordered Exa key pool: `EXA_API_KEY` (comma-separated list allowed) then
+    /// `EXA_API_KEY_2` .. `EXA_API_KEY_9`, deduped, empties dropped. The first
+    /// healthy key is used; keys that answer with a credit/quota (402) or
+    /// rate-limit (429) error are parked for an hour and the next one takes
+    /// over. Mirrors the Hermes `exa-pool` convention.
+    pub exa_api_keys: Vec<String>,
     pub llm_api_base: String,
     pub llm_api_key: String,
     pub llm_model: String,
@@ -64,6 +70,7 @@ impl Default for Config {
             discord_token: String::new(),
             tinyfish_api_key: String::new(),
             exa_api_key: String::new(),
+            exa_api_keys: Vec::new(),
             llm_api_base: "https://ollama.com/v1".into(),
             llm_api_key: String::new(),
             llm_model: "deepseek-v4-flash:0731".into(),
@@ -109,6 +116,7 @@ impl Config {
             discord_token: get("DISCORD_TOKEN"),
             tinyfish_api_key: get("TINYFISH_API_KEY"),
             exa_api_key: get("EXA_API_KEY"),
+            exa_api_keys: exa_key_pool(),
             llm_api_base: get("LLM_API_BASE"),
             llm_api_key: get("LLM_API_KEY"),
             llm_model: get("LLM_MODEL"),
@@ -151,6 +159,26 @@ impl Config {
             && !self.llm_fallback_key.is_empty()
             && !self.llm_fallback_model.is_empty()
     }
+}
+
+/// Ordered, deduped Exa keys following the Hermes `exa-pool` convention:
+/// `EXA_API_KEY` (a comma-separated list is split) followed by
+/// `EXA_API_KEY_2` .. `EXA_API_KEY_9`. Slot order is priority order.
+pub fn exa_key_pool() -> Vec<String> {
+    let mut slots: Vec<String> = vec!["EXA_API_KEY".to_string()];
+    for i in 2..=9 {
+        slots.push(format!("EXA_API_KEY_{i}"));
+    }
+    let mut keys = Vec::new();
+    for slot in slots {
+        for part in std::env::var(&slot).unwrap_or_default().split(',') {
+            let key = part.trim();
+            if !key.is_empty() && !keys.iter().any(|k: &String| k == key) {
+                keys.push(key.to_string());
+            }
+        }
+    }
+    keys
 }
 
 fn parse_i64(key: &str, default: i64) -> i64 {
@@ -222,6 +250,35 @@ mod tests {
         std::env::remove_var("DB_PATH");
         std::env::remove_var("DEDUPE_TTL_HOURS");
         std::env::remove_var("RETENTION_DAYS");
+    }
+
+    #[test]
+    fn exa_key_pool_follows_slot_convention() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        std::env::set_var("EXA_API_KEY", "a,b , a");
+        std::env::set_var("EXA_API_KEY_2", "c");
+        std::env::set_var("EXA_API_KEY_3", "");
+        std::env::set_var("EXA_API_KEY_4", "d");
+        let keys = exa_key_pool();
+        assert_eq!(keys, vec!["a", "b", "c", "d"]);
+
+        // Slot order is priority order — a key in EXA_API_KEY wins over _2.
+        std::env::set_var("EXA_API_KEY", "d");
+        assert_eq!(exa_key_pool().first().map(String::as_str), Some("d"));
+
+        // `from_env` wires the pool through.
+        let c = Config::from_env().unwrap();
+        assert_eq!(c.exa_api_keys.len(), 2, "{:?}", c.exa_api_keys);
+
+        for slot in [
+            "EXA_API_KEY",
+            "EXA_API_KEY_2",
+            "EXA_API_KEY_3",
+            "EXA_API_KEY_4",
+        ] {
+            std::env::remove_var(slot);
+        }
+        assert!(exa_key_pool().is_empty());
     }
 
     #[test]

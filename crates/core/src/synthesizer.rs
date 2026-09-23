@@ -290,6 +290,7 @@ impl LlmClient {
     fn parse_tolerant(raw: &str) -> Result<Synthesis, PipelineError> {
         let v: serde_json::Value = serde_json::from_str(&extract_json(raw))
             .map_err(|e| PipelineError::SynthesisFailed(format!("json parse: {e}")))?;
+        let v = coerce_synthesis_fields(v);
         let mut s: Synthesis = serde_json::from_value(v)
             .map_err(|e| PipelineError::SynthesisFailed(format!("json shape: {e}")))?;
         if s.title.trim().is_empty() {
@@ -405,6 +406,70 @@ pub fn extract_json(raw: &str) -> String {
     match (start, end) {
         (Some(s), Some(e)) if e > s => raw[s..=e].to_string(),
         _ => raw.to_string(),
+    }
+}
+
+/// Shape-tolerant coercion applied before deserializing into [`Synthesis`].
+///
+/// Observed live: the model answered a declared `string` field with an ARRAY
+/// (`"deep_analysis": ["- point one", "- point two"]`), which hard-failed with
+/// `json shape: invalid type: sequence, expected a string` and — because the
+/// fallback provider was out of credits — killed the whole analysis. Bullet
+/// lists are exactly what the prompt asks for, so a list is a faithful answer
+/// and must not be an error.
+///
+/// Rules (only for the three text fields):
+/// - string → unchanged
+/// - array of strings → joined with newlines, so bullets survive
+/// - other scalars (number/bool) → their JSON text
+/// - `citations` entries whose `context` is not a string get the same
+///   treatment; an unusable entry is dropped rather than poisoning the parse
+pub fn coerce_synthesis_fields(v: serde_json::Value) -> serde_json::Value {
+    let serde_json::Value::Object(mut map) = v else {
+        return v;
+    };
+    for field in ["title", "summary", "deep_analysis", "critique"] {
+        if let Some(value) = map.get(field) {
+            let coerced = coerce_to_text(value);
+            map.insert(field.to_string(), serde_json::Value::String(coerced));
+        }
+    }
+    if let Some(serde_json::Value::Array(items)) = map.get("citations") {
+        let normalized: Vec<serde_json::Value> = items
+            .iter()
+            .filter_map(|item| {
+                let serde_json::Value::Object(entry) = item else {
+                    return None;
+                };
+                let url = entry.get("url")?;
+                let serde_json::Value::String(url) = url else {
+                    return None; // a citation without a URL string is not citable
+                };
+                let context = entry.get("context").map(coerce_to_text).unwrap_or_default();
+                Some(serde_json::json!({ "url": url, "context": context }))
+            })
+            .collect();
+        map.insert(
+            "citations".to_string(),
+            serde_json::Value::Array(normalized),
+        );
+    }
+    serde_json::Value::Object(map)
+}
+
+/// Render any JSON value as text: arrays join on newlines (bullets survive),
+/// strings pass through, scalars become their JSON text, nested structures
+/// serialize compactly.
+fn coerce_to_text(value: &serde_json::Value) -> String {
+    match value {
+        serde_json::Value::String(s) => s.clone(),
+        serde_json::Value::Array(items) => items
+            .iter()
+            .map(coerce_to_text)
+            .collect::<Vec<_>>()
+            .join("\n"),
+        serde_json::Value::Null => String::new(),
+        other => other.to_string(),
     }
 }
 
