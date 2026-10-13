@@ -2,8 +2,8 @@
 //! covered via unit tests on the gate/rendering functions").
 
 use linkbot_bot::events::{
-    bot_self_gate_passes, channel_gate_passes, cooldown_passes, first_link, gate_decision,
-    media_gate_passes, status_line, GateDecision,
+    bot_self_gate_passes, channel_gate_passes, first_link, gate_decision, media_gate_passes,
+    rate_limit_passes, status_line, GateDecision,
 };
 use linkbot_bot::ui::{split_chunks, window_footer, MAX_MSG_CHARS};
 use linkbot_core::clock::{FakeClock, Now};
@@ -122,77 +122,53 @@ fn bot_self_gate_rejects_bots() {
 }
 
 #[test]
-fn cooldown_passes_edge_cases() {
-    // Never analyzed → pass.
-    assert!(cooldown_passes(None, 1000, 60));
-    // Exactly at boundary → pass.
-    assert!(cooldown_passes(Some(940), 1000, 60));
-    // Just inside → blocked.
-    assert!(!cooldown_passes(Some(941), 1000, 60));
-    // Far in the past → pass.
-    assert!(cooldown_passes(Some(0), 1000, 60));
-    // Zero cooldown → always pass.
-    assert!(cooldown_passes(Some(999), 1000, 0));
+fn rate_limit_passes_edge_cases() {
+    assert!(rate_limit_passes(0, 5));
+    assert!(rate_limit_passes(4, 5));
+    assert!(!rate_limit_passes(5, 5));
+    assert!(!rate_limit_passes(6, 5));
+    assert!(!rate_limit_passes(1, 1));
+    assert!(rate_limit_passes(0, 0));
+    assert!(rate_limit_passes(99, 0));
 }
 
 #[test]
-fn dedupe_skipped_message_does_not_consume_channel_cooldown() {
-    // Regression: the dedupe gate must be evaluated BEFORE the cooldown
-    // gate. A dedupe-skipped message must not reset the channel's
-    // last_analyzed_at, or a legitimate follow-up post within COOLDOWN_SECS
-    // would be wrongly blocked.
-    let now = 1_000_000;
-    let cooldown_secs = 60;
-
-    // Dedupe hit short-circuits — even when the cooldown would have passed.
-    assert_eq!(
-        gate_decision(true, Some(now - 70), now, cooldown_secs),
-        GateDecision::DedupeSkipped
-    );
-    // ...and even when the cooldown would have blocked.
-    assert_eq!(
-        gate_decision(true, Some(now - 1), now, cooldown_secs),
-        GateDecision::DedupeSkipped
-    );
-
-    // No dedupe hit: cooldown decides as before.
-    assert_eq!(
-        gate_decision(false, Some(now - 70), now, cooldown_secs),
-        GateDecision::Proceed
-    );
-    assert_eq!(
-        gate_decision(false, Some(now - 1), now, cooldown_secs),
-        GateDecision::CooldownBlocked
-    );
-    assert_eq!(
-        gate_decision(false, None, now, cooldown_secs),
-        GateDecision::Proceed
-    );
+fn gate_decision_checks_dedupe_before_the_rate_limit() {
+    assert_eq!(gate_decision(true, 0, 5), GateDecision::DedupeSkipped);
+    assert_eq!(gate_decision(true, 5, 5), GateDecision::DedupeSkipped);
+    assert_eq!(gate_decision(false, 4, 5), GateDecision::Proceed);
+    assert_eq!(gate_decision(false, 5, 5), GateDecision::RateLimited);
+    assert_eq!(gate_decision(false, 0, 0), GateDecision::Proceed);
 }
 
 #[test]
-fn dedupe_skipped_message_leaves_store_cooldown_untouched() {
-    // End-to-end through the store: a dedupe hit must not write the
-    // cooldown row. The handler only calls cooldown_set on Proceed, so the
-    // store state after a dedupe hit is exactly what it was before.
+fn dedupe_skipped_message_does_not_consume_rate_budget() {
     let clock = Arc::new(FakeClock::new(1_000_000));
     let s = Store::open_in_memory(clock.clone(), 24 * 3600, 30).unwrap();
     s.record_analysis(&rec("https://example.com/a", 1_000_000))
         .unwrap();
-    s.cooldown_set("chan-1", 1_000_000 - 30).unwrap();
+    s.trigger_record("chan-1", clock.now_unix() - 30).unwrap();
 
-    // Same URL within TTL → dedupe hit → skipped, cooldown untouched.
+    let since = clock.now_unix() - 300;
     let hit = s
         .dedupe_hit("https://example.com/a", clock.now_unix())
         .unwrap();
-    let last = s.cooldown_get("chan-1").unwrap().unwrap();
-    assert_eq!(
-        gate_decision(hit, Some(last), clock.now_unix(), 60),
-        GateDecision::DedupeSkipped
-    );
-    // The stored timestamp is unchanged — a follow-up post 30s later is
-    // still inside the 60s cooldown and would be blocked, as intended.
-    assert_eq!(s.cooldown_get("chan-1").unwrap().unwrap(), 1_000_000 - 30);
+    let count = s.trigger_count("chan-1", since).unwrap();
+    assert_eq!(gate_decision(hit, count, 5), GateDecision::DedupeSkipped);
+    assert_eq!(s.trigger_count("chan-1", since).unwrap(), 1);
+}
+
+#[test]
+fn three_links_in_four_minutes_remain_under_the_rate_limit() {
+    let s = test_store(1_000_000);
+    for offset in [0, 120, 240] {
+        let now = 1_000_000 + offset;
+        let since = now - 300;
+        let count = s.trigger_count("chan-1", since).unwrap();
+        assert_eq!(gate_decision(false, count, 5), GateDecision::Proceed);
+        s.trigger_record("chan-1", now).unwrap();
+    }
+    assert_eq!(s.trigger_count("chan-1", 1_000_240 - 300).unwrap(), 3);
 }
 
 #[test]
@@ -306,21 +282,6 @@ fn store_dedupe_gate_blocks_recent_url() {
     assert!(!s
         .dedupe_hit("https://example.com/b", 1_000_000 + 60)
         .unwrap());
-}
-
-#[test]
-fn store_cooldown_gate_blocks_until_expiry() {
-    let clock = Arc::new(FakeClock::new(1_000_000));
-    let s = Store::open_in_memory(clock.clone(), 24 * 3600, 30).unwrap();
-    s.cooldown_set("chan-1", clock.now_unix()).unwrap();
-    // 30s later: still inside a 60s cooldown → blocked.
-    clock.advance(30);
-    let last = s.cooldown_get("chan-1").unwrap().unwrap();
-    assert!(!cooldown_passes(Some(last), clock.now_unix(), 60));
-    // 31s more (61s total): expired → passes.
-    clock.advance(31);
-    let last = s.cooldown_get("chan-1").unwrap().unwrap();
-    assert!(cooldown_passes(Some(last), clock.now_unix(), 60));
 }
 
 #[test]

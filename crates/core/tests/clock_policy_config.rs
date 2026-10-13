@@ -198,7 +198,8 @@ fn policy_bad_file_falls_back_to_default() {
 #[test]
 fn config_defaults() {
     let c = Config::default();
-    assert_eq!(c.cooldown_secs, 60);
+    assert_eq!(c.rate_limit_max, 5);
+    assert_eq!(c.rate_limit_window_secs, 300);
     assert!(c.allow_all_channels);
     assert_eq!(c.reply_mode, ReplyMode::Thread);
     assert_eq!(c.llm_api_base, "https://ollama.com/v1");
@@ -240,7 +241,8 @@ fn config_from_env_full() {
     std::env::set_var("LLM_API_KEY", "llm");
     std::env::set_var("LLM_MODEL", "deepseek-v4.1-flash");
     std::env::set_var("ANALYZE_CHANNELS", "111, 222 ,333");
-    std::env::set_var("COOLDOWN_SECS", "120");
+    std::env::set_var("RATE_LIMIT_MAX", "7");
+    std::env::set_var("RATE_LIMIT_WINDOW_SECS", "120");
     std::env::set_var("CORPUS_TOKEN_BUDGET", "12345");
     std::env::set_var("REPLY_MODE", "split");
     let c = Config::from_env().unwrap();
@@ -250,7 +252,8 @@ fn config_from_env_full() {
         c.analyze_channels,
         vec!["111".to_string(), "222".to_string(), "333".to_string()]
     );
-    assert_eq!(c.cooldown_secs, 120);
+    assert_eq!(c.rate_limit_max, 7);
+    assert_eq!(c.rate_limit_window_secs, 120);
     assert_eq!(c.corpus_token_budget, 12345);
     assert_eq!(c.reply_mode, ReplyMode::Split);
     for k in [
@@ -260,7 +263,8 @@ fn config_from_env_full() {
         "LLM_API_KEY",
         "LLM_MODEL",
         "ANALYZE_CHANNELS",
-        "COOLDOWN_SECS",
+        "RATE_LIMIT_MAX",
+        "RATE_LIMIT_WINDOW_SECS",
         "CORPUS_TOKEN_BUDGET",
         "REPLY_MODE",
     ] {
@@ -285,20 +289,32 @@ fn config_from_env_garbage_numbers_keep_defaults() {
     let _g = env_guard();
     // Guard against concurrent policy tests setting these env vars.
     clear_all_policy_env();
-    std::env::set_var("COOLDOWN_SECS", "not-a-number");
+    std::env::set_var("RATE_LIMIT_MAX", "not-a-number");
+    std::env::set_var("RATE_LIMIT_WINDOW_SECS", "not-a-number");
     let c = Config::from_env().unwrap();
-    assert_eq!(c.cooldown_secs, 60, "unparseable → default");
-    std::env::remove_var("COOLDOWN_SECS");
+    assert_eq!(c.rate_limit_max, 5, "unparseable → default");
+    assert_eq!(c.rate_limit_window_secs, 300, "unparseable → default");
+    std::env::remove_var("RATE_LIMIT_MAX");
+    std::env::remove_var("RATE_LIMIT_WINDOW_SECS");
+}
+
+#[test]
+fn config_from_env_nonpositive_rate_limit_window_uses_default() {
+    let _g = env_guard();
+    std::env::set_var("RATE_LIMIT_WINDOW_SECS", "0");
+    let c = Config::from_env().unwrap();
+    assert_eq!(c.rate_limit_window_secs, 300);
+    std::env::remove_var("RATE_LIMIT_WINDOW_SECS");
 }
 
 #[test]
 fn config_from_env_negative_numbers_pass_through() {
     // parse_i64 has no sign clamp — a valid negative is accepted as-is.
     let _g = env_guard();
-    std::env::set_var("COOLDOWN_SECS", "-3");
+    std::env::set_var("RATE_LIMIT_MAX", "-3");
     let c = Config::from_env().unwrap();
-    assert_eq!(c.cooldown_secs, -3);
-    std::env::remove_var("COOLDOWN_SECS");
+    assert_eq!(c.rate_limit_max, -3);
+    std::env::remove_var("RATE_LIMIT_MAX");
 }
 
 #[test]

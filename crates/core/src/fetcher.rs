@@ -20,6 +20,7 @@ pub struct FetchedArticle {
     pub text: String,
 }
 
+#[allow(clippy::double_must_use)]
 #[async_trait]
 pub trait Fetcher: Send + Sync {
     /// Fetch one URL → clean markdown + metadata. Errors map to the §10 taxonomy.

@@ -1,4 +1,5 @@
-//! SQLite telemetry + dedupe + cooldown store (goal.md §5 Stage 8, ticket #4).
+//! SQLite telemetry + dedupe + rolling rate-limit store
+//! (goal.md §5 Stage 8, ticket #4).
 //!
 //! A single-file, single-connection SQLite store in WAL mode, guarded by a
 //! `std::sync::Mutex` — plenty for one bot process (no async I/O, no server).
@@ -9,8 +10,8 @@
 //!   query over an index on `(url, created_at)`, **not** a unique constraint:
 //!   a unique index on `url` would destroy telemetry history when the same URL
 //!   is re-analyzed after the TTL window expires.
-//! - `cooldowns` — per-channel last-analysis timestamp, persisted so a bot
-//!   restart no longer resets the cooldown.
+//! - `triggers` — per-channel trigger timestamps for rolling rate limits,
+//!   retained for 24 hours.
 //!
 //! Judge scores (ticket #7) attach to `analyses.id` via a child table — the
 //! integer primary key is the extension point, so no schema rewrite is needed.
@@ -22,6 +23,8 @@ use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 
 use crate::clock::Clock;
+
+const TRIGGER_RETAIN_SECS: i64 = 86_400;
 
 /// One completed analysis — the telemetry row.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -59,7 +62,7 @@ pub enum StoreError {
     Sqlite(#[from] rusqlite::Error),
 }
 
-/// SQLite-backed telemetry + dedupe + cooldown store.
+/// SQLite-backed telemetry + dedupe + rolling rate-limit store.
 pub struct Store {
     conn: Mutex<Connection>,
     clock: Clock,
@@ -133,14 +136,20 @@ impl Store {
                  CREATE INDEX IF NOT EXISTS idx_analyses_url_created
                      ON analyses(url, created_at);
                  CREATE INDEX IF NOT EXISTS idx_analyses_created_at
-                     ON analyses(created_at);
-                 CREATE TABLE IF NOT EXISTS cooldowns (
-                     channel_id TEXT PRIMARY KEY,
-                     last_analyzed_at INTEGER NOT NULL
-                 );",
+                     ON analyses(created_at);",
             )?;
             conn.pragma_update(None, "user_version", 1)?;
         }
+        // Rate-limit history is also needed by existing v1 databases.
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS triggers (
+                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                 channel_id TEXT NOT NULL,
+                 at INTEGER NOT NULL
+             );
+             CREATE INDEX IF NOT EXISTS idx_triggers_channel_at
+                 ON triggers(channel_id, at);",
+        )?;
         let store = Self {
             conn: Mutex::new(conn),
             clock,
@@ -201,28 +210,26 @@ impl Store {
         Ok(found.is_some())
     }
 
-    /// Last analysis timestamp for a channel, if any.
-    pub fn cooldown_get(&self, channel_id: &str) -> Result<Option<i64>, StoreError> {
+    /// Number of triggers for a channel strictly newer than `since`.
+    pub fn trigger_count(&self, channel_id: &str, since: i64) -> Result<i64, StoreError> {
         let conn = self.conn.lock().unwrap();
-        let v: Option<i64> = conn
-            .query_row(
-                "SELECT last_analyzed_at FROM cooldowns WHERE channel_id = ?1",
-                params![channel_id],
-                |r| r.get(0),
-            )
-            .optional()?;
-        Ok(v)
+        let count = conn.query_row(
+            "SELECT COUNT(*) FROM triggers WHERE channel_id = ?1 AND at > ?2",
+            params![channel_id, since],
+            |row| row.get(0),
+        )?;
+        Ok(count)
     }
 
-    /// Record a channel's last-analysis timestamp (upsert).
-    pub fn cooldown_set(&self, channel_id: &str, at: i64) -> Result<(), StoreError> {
+    /// Record a channel trigger and prune trigger history older than 24 hours.
+    pub fn trigger_record(&self, channel_id: &str, at: i64) -> Result<(), StoreError> {
         let conn = self.conn.lock().unwrap();
         conn.execute(
-            "INSERT INTO cooldowns (channel_id, last_analyzed_at) VALUES (?1, ?2)
-             ON CONFLICT(channel_id) DO UPDATE SET
-                 last_analyzed_at = excluded.last_analyzed_at",
+            "INSERT INTO triggers (channel_id, at) VALUES (?1, ?2)",
             params![channel_id, at],
         )?;
+        let cutoff = at - TRIGGER_RETAIN_SECS;
+        conn.execute("DELETE FROM triggers WHERE at < ?1", params![cutoff])?;
         Ok(())
     }
 
@@ -282,7 +289,7 @@ impl Store {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::clock::{FakeClock, Now};
+    use crate::clock::FakeClock;
 
     fn rec(url: &str, created_at: i64) -> AnalysisRecord {
         AnalysisRecord {
@@ -313,6 +320,24 @@ mod tests {
     fn open_creates_schema_and_wal() {
         let s = store(1_000_000);
         assert_eq!(s.count_analyses().unwrap(), 0);
+        let conn = s.conn.lock().unwrap();
+        let triggers_table: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'triggers'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        let triggers_index: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'idx_triggers_channel_at'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(triggers_table, 1);
+        assert_eq!(triggers_index, 1);
+        drop(conn);
         // WAL mode is active on a file-backed connection (in-memory DBs
         // always report "memory" — SQLite limitation).
         let dir = tempfile::tempdir().unwrap();
@@ -323,6 +348,57 @@ mod tests {
             .query_row("PRAGMA journal_mode", [], |r| r.get(0))
             .unwrap();
         assert_eq!(mode.to_lowercase(), "wal");
+    }
+
+    #[test]
+    fn open_existing_database_is_idempotent_and_preserves_legacy_cooldowns() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("linkbot.db");
+        {
+            let conn = Connection::open(&path).unwrap();
+            conn.execute_batch(
+                "CREATE TABLE analyses (created_at INTEGER NOT NULL);
+                 CREATE TABLE cooldowns (
+                     channel_id TEXT PRIMARY KEY,
+                     last_analyzed_at INTEGER NOT NULL
+                 );
+                 INSERT INTO cooldowns (channel_id, last_analyzed_at) VALUES ('legacy-channel', 42);
+                 PRAGMA user_version = 1;",
+            )
+            .unwrap();
+        }
+
+        {
+            let s = Store::open(&path, std::sync::Arc::new(FakeClock::new(0)), 3600, 30).unwrap();
+            s.trigger_record("c1", 1_000_000).unwrap();
+        }
+        let s = Store::open(&path, std::sync::Arc::new(FakeClock::new(0)), 3600, 30).unwrap();
+        assert_eq!(s.trigger_count("c1", 999_999).unwrap(), 1);
+        let conn = s.conn.lock().unwrap();
+        let legacy_cooldowns: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'cooldowns'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        let legacy_row: i64 = conn
+            .query_row(
+                "SELECT last_analyzed_at FROM cooldowns WHERE channel_id = 'legacy-channel'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        let triggers_index: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'idx_triggers_channel_at'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(legacy_cooldowns, 1);
+        assert_eq!(legacy_row, 42);
+        assert_eq!(triggers_index, 1);
     }
 
     #[test]
@@ -392,31 +468,30 @@ mod tests {
     }
 
     #[test]
-    fn cooldown_get_set_roundtrip() {
+    fn trigger_count_excludes_the_since_boundary() {
         let s = store(1_000_000);
-        assert_eq!(s.cooldown_get("c1").unwrap(), None);
-        s.cooldown_set("c1", 1_000_000).unwrap();
-        assert_eq!(s.cooldown_get("c1").unwrap(), Some(1_000_000));
-        // Upsert overwrites.
-        s.cooldown_set("c1", 1_000_060).unwrap();
-        assert_eq!(s.cooldown_get("c1").unwrap(), Some(1_000_060));
-        // Channels are independent.
-        assert_eq!(s.cooldown_get("c2").unwrap(), None);
+        s.trigger_record("c1", 1_000_000).unwrap();
+        s.trigger_record("c1", 1_000_001).unwrap();
+
+        assert_eq!(s.trigger_count("c1", 1_000_000).unwrap(), 1);
+        assert_eq!(s.trigger_count("c2", 1_000_000).unwrap(), 0);
     }
 
     #[test]
-    fn cooldown_expiry_via_injectable_clock() {
-        let clock = std::sync::Arc::new(FakeClock::new(1_000_000));
-        let s = Store::open_in_memory(clock.clone(), 24 * 3600, 30).unwrap();
-        s.cooldown_set("c1", clock.now_unix()).unwrap();
-        // 59s later: still inside a 60s cooldown.
-        clock.advance(59);
-        let last = s.cooldown_get("c1").unwrap().unwrap();
-        assert!(clock.now_unix() - last < 60);
-        // 61s later: expired.
-        clock.advance(2);
-        let last = s.cooldown_get("c1").unwrap().unwrap();
-        assert!(clock.now_unix() - last >= 60);
+    fn trigger_record_inserts_and_prunes_rows_older_than_24_hours() {
+        let s = store(1_000_000);
+        let now = 1_000_000;
+        s.trigger_record("c1", now - TRIGGER_RETAIN_SECS - 1)
+            .unwrap();
+        s.trigger_record("c1", now - TRIGGER_RETAIN_SECS).unwrap();
+        s.trigger_record("c1", now - TRIGGER_RETAIN_SECS + 1)
+            .unwrap();
+        s.trigger_record("c1", now).unwrap();
+
+        // The row older than 24h is pruned; exact-boundary, younger, and new
+        // rows remain, and the latest trigger was inserted.
+        assert_eq!(s.trigger_count("c1", i64::MIN).unwrap(), 3);
+        assert_eq!(s.trigger_count("c1", now - 1).unwrap(), 1);
     }
 
     #[test]
@@ -488,7 +563,7 @@ mod tests {
             .unwrap();
             s.record_analysis(&rec("https://persist.com/1", 1_000_000))
                 .unwrap();
-            s.cooldown_set("c9", 1_000_000).unwrap();
+            s.trigger_record("c9", 1_000_000).unwrap();
         }
         // Reopen: data survives (this is the whole point of the ticket).
         let s = Store::open(
@@ -503,7 +578,7 @@ mod tests {
             s.recent_analyses(10).unwrap()[0].url,
             "https://persist.com/1"
         );
-        assert_eq!(s.cooldown_get("c9").unwrap(), Some(1_000_000));
+        assert_eq!(s.trigger_count("c9", 999_999).unwrap(), 1);
     }
 
     #[test]

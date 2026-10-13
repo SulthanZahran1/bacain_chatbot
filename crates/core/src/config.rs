@@ -30,10 +30,15 @@ pub struct Config {
     // --- gates ---
     pub analyze_channels: Vec<String>, // empty = ALLOW_ALL
     pub allow_all_channels: bool,
-    pub cooldown_secs: i64,
+    /// Maximum analyses per channel within the rolling rate-limit window.
+    /// A value of 0 or less disables the limiter.
+    pub rate_limit_max: i64,
+    /// Rolling per-channel rate-limit window in seconds. Nonpositive values
+    /// use the 300-second default.
+    pub rate_limit_window_secs: i64,
 
     // --- SQLite store (ticket #4) ---
-    /// Path to the SQLite telemetry/dedupe/cooldown database file.
+    /// Path to the SQLite telemetry/dedupe/rate-limit database file.
     pub db_path: String,
     /// Dedupe window in hours: same URL analyzed within this many hours is
     /// a dedupe hit. **0 = dedupe disabled** (the default) — every post gets
@@ -79,7 +84,8 @@ impl Default for Config {
             llm_fallback_model: String::new(),
             analyze_channels: vec![],
             allow_all_channels: true,
-            cooldown_secs: 60,
+            rate_limit_max: 5,
+            rate_limit_window_secs: 300,
             db_path: "data/linkbot.db".into(),
             dedupe_ttl_hours: 0, // opt-in: 0 = dedupe disabled (fresh analysis every post)
             retention_days: 30,
@@ -125,7 +131,11 @@ impl Config {
             llm_fallback_model: get("LLM_FALLBACK_MODEL"),
             allow_all_channels: allow_all,
             analyze_channels: channels,
-            cooldown_secs: parse_i64("COOLDOWN_SECS", 60),
+            rate_limit_max: parse_i64("RATE_LIMIT_MAX", 5),
+            rate_limit_window_secs: match parse_i64("RATE_LIMIT_WINDOW_SECS", 300) {
+                secs if secs > 0 => secs,
+                _ => 300,
+            },
             db_path: std::env::var("DB_PATH").unwrap_or_else(|_| "data/linkbot.db".to_string()),
             dedupe_ttl_hours: parse_i64("DEDUPE_TTL_HOURS", 0),
             retention_days: parse_u64("RETENTION_DAYS", 30),
@@ -211,12 +221,15 @@ mod tests {
     #[test]
     fn config_parse_env_overrides() {
         let _guard = ENV_LOCK.lock().unwrap();
-        std::env::set_var("COOLDOWN_SECS", "120");
+        std::env::set_var("RATE_LIMIT_MAX", "7");
+        std::env::set_var("RATE_LIMIT_WINDOW_SECS", "120");
         std::env::set_var("REPLY_MODE", "split");
         let c = Config::from_env().unwrap();
-        assert_eq!(c.cooldown_secs, 120);
+        assert_eq!(c.rate_limit_max, 7);
+        assert_eq!(c.rate_limit_window_secs, 120);
         assert_eq!(c.reply_mode, ReplyMode::Split);
-        std::env::remove_var("COOLDOWN_SECS");
+        std::env::remove_var("RATE_LIMIT_MAX");
+        std::env::remove_var("RATE_LIMIT_WINDOW_SECS");
         std::env::remove_var("REPLY_MODE");
     }
 

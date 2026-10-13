@@ -10,7 +10,7 @@ services:
     tmpfs:
       - /tmp
     volumes:
-      # Persistent SQLite telemetry/dedupe/cooldown store (ticket #4).
+      # Persistent SQLite telemetry/dedupe/rate-limit store (ticket #4).
       # The rootfs is read-only; only this volume is writable.
       - linkbot-data:/data
 

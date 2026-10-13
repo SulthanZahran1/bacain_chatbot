@@ -29,7 +29,7 @@ async fn main() {
         std::process::exit(1);
     }
 
-    // SQLite telemetry + dedupe + cooldown store (ticket #4).
+    // SQLite telemetry + dedupe + rolling rate-limit store (ticket #4).
     // Dedupe is opt-in: DEDUPE_TTL_HOURS=0 (default) disables the gate.
     let store = match linkbot_core::Store::open(
         &config.db_path,

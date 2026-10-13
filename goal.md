@@ -43,7 +43,7 @@ discord-link-bot/
 │   │   │   ├── reader.rs       # corpus assembly + token budgeting
 │   │   │   ├── synthesizer.rs  # LLM chat completion, structured JSON output
 │   │   │   ├── citations.rs    # citation pool + validator (legit-only)
-│   │   │   ├── cache.rs        # SQLite dedupe + cooldown
+│   │   │   ├── cache.rs        # SQLite dedupe + rate-limit history
 │   │   │   ├── config.rs       # env parsing, domain-speed table, prompts, loop policy
 │   │   │   ├── optimizer.rs    # offline policy sweep on the scenario suite (§5 Stage 9)
 │   │   │   ├── mock_providers.rs # MockSearchProvider/MockFetcher + fault injection (§5 Stage 9)
@@ -55,7 +55,7 @@ discord-link-bot/
 │       └── src/
 │           ├── main.rs         # bootstrap: config, tracing, serenity client
 │           ├── events/
-│           │   ├── message.rs  # link detection, gates (allowlist/cooldown/dedupe)
+│           │   ├── message.rs  # link detection, gates (allowlist/rate-limit/dedupe)
 │           │   └── interaction.rs  # slash commands: /analyze /status /config
 │           └── ui/
 │               ├── render.rs   # analysis → Discord messages/embeds, 2000-char split
@@ -69,7 +69,7 @@ discord-link-bot/
 
 ```
 ┌───────────────────────── FRONTEND (Discord surface) ─────────────────────────┐
-│  serenity gateway → message events → link detector → gates (channel/cooldown)│
+│  serenity gateway → message events → link detector → gates (channel/rate limit)│
 │  slash commands (/analyze /status /config)      UI renderer → threads/splits │
 └───────────────────────────────────┬───────────────────────────────────────────┘
                                     │ trigger                │ rendered output
@@ -118,7 +118,7 @@ pub async fn analyze(req: AnalysisRequest, deps: &Deps) -> Result<Analysis, Pipe
 | D6 | AI-topic window | **Fixed 30 days** (`recency_minutes=43200`) per spec | — |
 | D7 | Non-AI window | **Domain-speed buckets** (§6) | — |
 | D8 | Reply mode | **Thread per analysis, anchored to the original message** (`⏳` emoji reaction as placeholder; the thread's start message *is* the original message, so it reads as a reply) | `split` mode (`⏳` reaction + sequential reply messages) — config switch |
-| D9 | State | **SQLite** (`rusqlite` bundled): URL dedupe, cooldown, analysis cache | — |
+| D9 | State | **SQLite** (`rusqlite` bundled): URL dedupe, per-channel rolling rate-limit history | — |
 | D10 | Deploy | **Docker Compose** (multi-stage build) | systemd unit |
 | D11 | Topic detection | Keyword scoring + LLM disambiguation for ambiguous scores (§5) | pure keyword, pure LLM |
 
@@ -132,8 +132,8 @@ pub async fn analyze(req: AnalysisRequest, deps: &Deps) -> Result<Analysis, Pipe
 2. **Gates** (all checked before any network call, cheapest first):
    - **Channel gate** — config allowlist/denylist (`ANALYZE_CHANNELS`, or `ALLOW_ALL=true`).
    - **Bot-self gate** — never respond to bot messages (including our own thread posts and reactions).
-   - **Cooldown** — per-channel, default 60 s between analyses (`COOLDOWN_SECS`).
-   - **Dedupe** — SQLite: same URL analyzed within `CACHE_TTL_HOURS` (default 24) → re-post cached analysis instead of re-running.
+   - **Dedupe** — SQLite: same URL analyzed within `DEDUPE_TTL_HOURS` → skip re-analysis.
+   - **Rate limit** — at most `RATE_LIMIT_MAX` analyses per channel in the rolling `RATE_LIMIT_WINDOW_SECS` window (defaults: 5 per 300 s).
 3. **Trigger** — call `core::pipeline::analyze(...)` on a tokio task; **never block the gateway event loop**.
 4. **Placeholder (emoji, not literal)** — react to the original message with the `⏳` emoji (`Message::react`). **No text placeholder is ever posted.** The reaction state *is* the status: `⏳` = in progress; removed when done. Terminal failures are logged and then fail silently in Discord: no apology message and no `❌` reaction.
 5. **Thread (replies the original message)** — create a thread anchored to the original message via `create_thread_from_message` (serenity 0.12 `ChannelId`): the original message becomes the thread's start message, so the thread is literally attached to — i.e. replies to — the message. Neutral name `📚 Link analysis` at creation; renamed to `📚 <article title>` once fetch returns the title (best effort). All analysis output posts into this thread.
@@ -142,7 +142,7 @@ pub async fn analyze(req: AnalysisRequest, deps: &Deps) -> Result<Analysis, Pipe
 
 | Command | Behavior |
 |---|---|
-| `/analyze <url>` | Force analysis regardless of message link (bypasses cooldown for the *link* but still dedupes) |
+| `/analyze <url>` | Force analysis regardless of message link (bypasses the per-channel rate limit but still dedupes) |
 | `/status` | Latency, last N analyses (URL, bucket, window, corpus size, LLM model, duration) |
 | `/config` | Per-channel on/off, reply mode (thread/split) — persisted to SQLite |
 | `/ping` | Liveness (for uptime checks) |
@@ -266,7 +266,7 @@ Three-layer enforcement that every cited place is real:
 2. **Prompt constraint:** the system prompt (§5 Stage 6) forbids out-of-pool URLs.
 3. **Post-generation validation (the backstop):** after the LLM returns, extract every URL from `citations[]` and verify set-membership in the pool. Any URL **not in the pool is dropped** (logged as `citation_rejected`). If a section then has zero citations, re-run once with the pruned citation list and an instruction to re-cite from the reduced pool. This is unit-tested (§13) — including a prompt-injection test where the model is tricked into emitting a fake URL, and the validator must prune it.
 
-### Stage 8 · Cache & cooldown (`cache.rs`)
+### Stage 8 · Dedupe & rolling rate-limit history (`store.rs`)
 
 SQLite tables:
 
@@ -277,11 +277,17 @@ CREATE TABLE analyses (
   analysis_json TEXT,                 -- cached result for re-posts
   window_used TEXT, bucket TEXT
 );
-CREATE TABLE cooldowns (channel_id TEXT PRIMARY KEY, last_analysis_at INTEGER);
+CREATE TABLE triggers (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  channel_id TEXT NOT NULL,
+  at INTEGER NOT NULL
+);
+CREATE INDEX idx_triggers_channel_at ON triggers(channel_id, at);
 CREATE TABLE config (key TEXT PRIMARY KEY, value TEXT);  -- /config persistence
 ```
 
-- Same URL within TTL → re-post cached analysis (footer: "cached from <time>").
+- Same URL within TTL → skip re-analysis.
+- Count trigger rows with `at > now - RATE_LIMIT_WINDOW_SECS`; prune rows older than 24 hours on each trigger insert.
 - Cache is per-URL, not per-guild — a link is a link.
 
 ### Stage 9 · Offline optimization on the synthetic scenario suite (`optimizer.rs`)
@@ -340,7 +346,7 @@ Rationale: a news wire story ages in days; a standards-body ruling stays relevan
 
 | # | Layer | Step |
 |---|-------|------|
-| 1 | frontend | Message arrives; regex finds `https://…`; gates pass (channel on, cooldown clear, not cached) |
+| 1 | frontend | Message arrives; regex finds `https://…`; gates pass (channel on, rate budget available, not deduped) |
 | 2 | frontend | React `⏳` to the original message; create a thread anchored to it (the original message becomes the thread's start message → the thread replies to it) |
 | 3 | core | `fetcher.fetch(url)` → markdown + `title`/`published_date`; on error → §10 message |
 | 4 | core | `classifier.classify(title, text)` → `is_ai_topic` |
@@ -351,7 +357,7 @@ Rationale: a news wire story ages in days; a standards-body ruling stays relevan
 | 9 | core | `synthesizer.generate(corpus)` → structured JSON |
 | 10 | core | `citations.validate()` → prune out-of-pool URLs |
 | 11 | frontend | `ui.render()` → thread: Summary / Deep Analysis / Critique / Sources (+ `⏱ window used` footer) |
-| 12 | core | Cache write (URL → analysis, TTL 24 h); cooldown set |
+| 12 | core | Analysis telemetry and channel trigger recorded |
 | 13 | — | `⏳` reaction removed. Done. Total budget: **≤ 60 s** (SLA); typical ~15–30 s |
 
 ---
@@ -379,8 +385,9 @@ Failure modes covered: invented URLs (validator prunes — tested), hallucinated
 | `LLM_API_KEY` | — (required) | Key for that endpoint |
 | `LLM_MODEL` | `gpt-4o-mini` | Model id |
 | `ANALYZE_CHANNELS` | `*` | Allowlist (comma-separated ids) or `*` |
-| `COOLDOWN_SECS` | `60` | Per-channel cooldown |
-| `CACHE_TTL_HOURS` | `24` | Analysis cache TTL |
+| `RATE_LIMIT_MAX` | `5` | Maximum analyses per channel in the rolling rate-limit window; `0` or less disables it |
+| `RATE_LIMIT_WINDOW_SECS` | `300` | Per-channel rolling rate-limit window in seconds; nonpositive values use the default |
+| `DEDUPE_TTL_HOURS` | `0` | Same-URL dedupe window in hours; `0` disables dedupe |
 | `SEARCH_RESULTS` | `5` | *(legacy)* initial search hits per query — superseded by the loop policy |
 | `INITIAL_K` / `EXPANSION_K` | `5` / `3` | Loop policy: hits per seed query / per angle expansion (Stage 4) |
 | `COVERAGE_TARGET` | `0.85` | Loop stop: corpus coverage threshold (Stage 4) |
@@ -432,7 +439,7 @@ Failure modes covered: invented URLs (validator prunes — tested), hallucinated
 | **M1** | Workspace skeleton; serenity gateway; link regex; `⏳` reaction + thread anchor; `/ping` | Bot joins guild; posting a link yields a `⏳` reaction and a thread that replies to the message |
 | **M2** | Fetcher, classifier, domain-speed, searcher loop (Exa), reader — no LLM synthesis yet; **scenario suite + optimizer offline** | `/analyze` prints fetched summary + related-article list with windows logged; `cargo run --bin optimize` completes a sweep; ~100 scenarios green with the winning policy |
 | **M3** | Synthesizer + citation validator | Full 3-part analysis with verified citations in a thread |
-| **M4** | Slash commands, /config, reply modes, cache+cooldown, error taxonomy | All §10 cases behave; dedupe re-posts cached analysis |
+| **M4** | Slash commands, /config, reply modes, dedupe+rate limit, error taxonomy | All §10 cases behave; dedupe skips repeated URLs |
 | **M5** | Tests (§13) incl. mutation pass, clippy, Docker, README | `cargo test` green; test:code ratio ≥ 1:1; mutation score ≥ 80% on `crates/core`; `docker compose up` works |
 | **M6** | Live deploy + 48 h soak; `/status` shows healthy latency | Soak log: zero panics, all analyses < 60 s |
 
@@ -479,13 +486,13 @@ Failure modes covered: invented URLs (validator prunes — tested), hallucinated
 
 **Robustness**
 - [ ] Dead link, bot-blocked site, 0 search results, LLM outage → silent terminal failures, no panics, bot stays connected
-- [ ] Same URL twice within 24 h → second post is the cached analysis
+- [ ] Same URL twice while `DEDUPE_TTL_HOURS > 0` → second post is skipped within the configured TTL
 - [ ] Long analysis splits correctly across the 2000-char limit in `split` mode
 - [ ] 30 consecutive varied links with no crash, no rate-limit lockout (TinyFish 429 handled)
 
 **Ops**
 - [ ] `docker compose up` runs the bot; survives restart; logs are readable
-- [ ] `/status` and `/config` work; channel gate and cooldown enforced
+- [ ] `/status` and `/config` work; channel gate and rolling per-channel rate limit enforced
 - [ ] README documents setup, all env vars, and the domain-speed table
 
 **Definition of Done is met when every box above is checked with evidence** (test output + a soak log + a demo of one AI link and one non-AI link in a real guild).

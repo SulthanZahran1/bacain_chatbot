@@ -1,4 +1,4 @@
-//! Injectable clock — deterministic freshness windows and cooldowns in tests.
+//! Injectable clock — deterministic time windows and rate limits in tests.
 
 use std::sync::atomic::{AtomicI64, Ordering};
 use std::sync::Arc;

@@ -14,18 +14,21 @@ use serenity::model::application::{Command, Interaction};
 use serenity::model::channel::{Message, ReactionType};
 use serenity::model::gateway::Ready;
 use serenity::prelude::{EventHandler, TypeMapKey};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use tracing::info;
 
 use crate::ui;
+
+// Store count and record calls lock independently; serialize admission so
+// concurrent message events cannot both consume the same remaining slot.
+static RATE_LIMIT_GATE_LOCK: Mutex<()> = Mutex::new(());
 
 /// Everything the event handler needs, shared across the bot.
 pub struct SharedDeps {
     pub config: Arc<Config>,
     pub clock: Clock,
-    /// SQLite telemetry + dedupe + cooldown store (ticket #4). Replaces the
-    /// in-memory cooldown map — survives restarts. Also the source of truth
-    /// for /status (recent analyses are read from the store, not memory).
+    /// SQLite telemetry + dedupe + rolling rate-limit store (ticket #4).
+    /// Also the source of truth for /status (recent analyses are read from the store, not memory).
     pub store: Arc<Store>,
 }
 
@@ -93,43 +96,34 @@ pub fn bot_self_gate_passes(is_bot: bool) -> bool {
     !is_bot
 }
 
-/// Gate 3: per-channel cooldown (seconds since last analysis).
-pub fn cooldown_passes(last: Option<i64>, now: i64, cooldown_secs: i64) -> bool {
-    match last {
-        None => true,
-        Some(t) => now - t >= cooldown_secs,
-    }
+/// Gate 3: rolling per-channel rate limit over the configured window.
+pub fn rate_limit_passes(count_in_window: i64, max: i64) -> bool {
+    max <= 0 || count_in_window < max
 }
 
-/// Outcome of the dedupe + cooldown gates, in evaluation order.
+/// Outcome of the dedupe + rolling rate-limit gates, in evaluation order.
 ///
 /// Ordering contract (regression-guarded by tests): a dedupe hit is
 /// evaluated FIRST and short-circuits — a dedupe-skipped message must NOT
-/// consume the channel cooldown, or a legitimate follow-up post within
-/// `cooldown_secs` would be wrongly blocked.
+/// consume the channel's rate-limit budget.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum GateDecision {
-    /// Dedupe hit — skip re-analysis (cooldown untouched).
+    /// Dedupe hit — skip re-analysis (rate-limit budget untouched).
     DedupeSkipped,
-    /// Inside the per-channel cooldown — blocked (cooldown untouched).
-    CooldownBlocked,
-    /// Both gates pass — analysis proceeds (caller sets the cooldown).
+    /// The channel has reached its rolling analysis limit.
+    RateLimited,
+    /// Both gates pass — analysis proceeds (caller records the trigger).
     Proceed,
 }
 
-/// Evaluate dedupe first, then cooldown. `dedupe_hit` is the store's answer
-/// for this URL. The caller must only run `cooldown_set` on `Proceed`.
-pub fn gate_decision(
-    dedupe_hit: bool,
-    last: Option<i64>,
-    now: i64,
-    cooldown_secs: i64,
-) -> GateDecision {
+/// Evaluate dedupe first, then the rate limit. `dedupe_hit` is the store's
+/// answer for this URL. The caller must only run `trigger_record` on `Proceed`.
+pub fn gate_decision(dedupe_hit: bool, count_in_window: i64, max: i64) -> GateDecision {
     if dedupe_hit {
         return GateDecision::DedupeSkipped;
     }
-    if !cooldown_passes(last, now, cooldown_secs) {
-        return GateDecision::CooldownBlocked;
+    if !rate_limit_passes(count_in_window, max) {
+        return GateDecision::RateLimited;
     }
     GateDecision::Proceed
 }
@@ -200,10 +194,13 @@ impl EventHandler for Handler {
         let normalized = linkbot_core::normalize_url(&url);
         let cache_key = normalized.clone().unwrap_or_else(|| url.clone());
 
-        // Dedupe first, then cooldown. Order matters: a dedupe-skipped
-        // message must NOT consume the channel cooldown (cooldown_set only
-        // runs on Proceed), so a legitimate follow-up post within
-        // COOLDOWN_SECS is not wrongly blocked.
+        // Dedupe first, then the rolling rate limit. A dedupe-skipped
+        // message must NOT consume channel budget; triggers are recorded only
+        // after a Proceed decision.
+        // Keep count → decision → record atomic across concurrent handlers.
+        let _rate_limit_guard = RATE_LIMIT_GATE_LOCK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let now = deps.clock.now_unix();
         let dedupe_hit = match deps.store.dedupe_hit(&cache_key, now) {
             Ok(true) => true,
@@ -213,19 +210,24 @@ impl EventHandler for Handler {
                 false
             }
         };
-        let last = deps.store.cooldown_get(&channel_id).unwrap_or(None);
-        match gate_decision(dedupe_hit, last, now, deps.config.cooldown_secs) {
+        let since = now - deps.config.rate_limit_window_secs;
+        let count = deps.store.trigger_count(&channel_id, since).unwrap_or(0);
+        match gate_decision(dedupe_hit, count, deps.config.rate_limit_max) {
             GateDecision::DedupeSkipped => {
                 tracing::info!(url = %cache_key, "dedupe hit — skipping re-analysis");
                 return;
             }
-            GateDecision::CooldownBlocked => return,
+            GateDecision::RateLimited => {
+                tracing::info!(channel = %channel_id, count, max = deps.config.rate_limit_max, "rate limit reached — skipping analysis");
+                return;
+            }
             GateDecision::Proceed => {
-                if let Err(e) = deps.store.cooldown_set(&channel_id, now) {
-                    tracing::warn!(?e, "cooldown_set failed");
+                if let Err(e) = deps.store.trigger_record(&channel_id, now) {
+                    tracing::warn!(?e, "trigger_record failed");
                 }
             }
         }
+        drop(_rate_limit_guard);
 
         // Trigger analysis on a task — never block the gateway loop.
         let ctx2 = ctx.clone();

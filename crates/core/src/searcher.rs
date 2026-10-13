@@ -68,6 +68,7 @@ pub struct SearchHit {
     pub published_date: Option<String>,
 }
 
+#[allow(clippy::double_must_use)]
 #[async_trait]
 pub trait SearchProvider: Send + Sync {
     async fn search(

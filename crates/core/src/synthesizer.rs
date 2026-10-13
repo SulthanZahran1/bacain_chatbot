@@ -105,6 +105,7 @@ pub fn build_prompt(
 /// LLM abstraction — the pipeline depends on this trait so the scenario
 /// suite can script the LLM (coverage assessor, query extractor, synthesis)
 /// without any network (§5 Stage 9: "The LLM is also mocked at this level").
+#[allow(clippy::double_must_use)]
 #[async_trait::async_trait]
 pub trait Llm: Send + Sync {
     async fn chat_json(&self, system: &str, user: &str) -> Result<String, PipelineError>;
